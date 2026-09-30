@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->alias([
+            'admin.timeout' => \App\Http\Middleware\AdminSessionTimeout::class,
+            'verify.device' => \App\Http\Middleware\VerifyDeviceToken::class,
+            'office.network' => \App\Http\Middleware\OfficeNetworkMiddleware::class,
+        ]);
+    })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+        $schedule->command('attendance:close-missing-checkouts')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -36,14 +36,26 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
+        $admin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
+        $settings = \App\Models\WebsiteSetting::current();
 
         return array_merge(parent::share($request), [
-            ...parent::share($request),
-            'name' => config('app.name'),
-            'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'name' => $settings->brandname ?? config('app.name'),
+            'settings' => $settings,
             'auth' => [
-                'user' => $request->user(),
+                'admin' => $admin ? [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'session_time' => $admin->session_time,
+                ] : null,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
+                'info' => fn () => $request->session()->get('info'),
+                'new_verification_link' => fn () => $request->session()->get('new_verification_link'),
             ],
         ]);
     }
