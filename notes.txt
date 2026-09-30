@@ -1,0 +1,67 @@
+# Task: Employee Attendance Management System
+
+**Stack:** Laravel (MVC) + Inertia.js + React + TypeScript + Tailwind + shadcn/ui.
+Deliver complete files (migrations, models, controllers, middleware, requests, routes, React pages/components). Write the code directly, with no clarifying questions.
+
+## 1. Database
+
+**admins:** id, uid (unique), name, email (unique), password, otp (nullable), otp_expires_at (nullable), session_time (int, default 30 minutes), timestamps
+- `Admin` model is Authenticatable with its own `admin` guard and provider. Admin login uses email and password, with OTP verification. Sessions expire after `session_time` minutes of inactivity (middleware).
+
+**website_settings** (single row): brandname, logo, favicon, office_starting_time, office_closing_time, office_ipv4_addr, missing_checkout_early_leave_minutes (default 60), timestamps
+
+**employees:** id, uid (unique), name, phone, role, work_desc, salary, working_hours, check_in_time, check_out_time, joining_date, image (nullable), appointment_letter (nullable, PDF), status (tinyint 0/1, default 0), device_token_hash (nullable), device_token_expires_at (nullable), verification_token (nullable, unique), verification_expires_at (nullable), timestamps
+- `check_in_time` and `check_out_time` default to `office_starting_time` and `office_closing_time` from website_settings when not provided.
+
+**attendances:** id, employee_id (FK, cascade on delete), date, check_in_at, check_out_at (nullable), late_minutes, overtime_minutes, early_leave_minutes, is_manual (bool), timestamps. Unique on (employee_id, date).
+
+Write the models with relationships and casts. Deleting an employee cascades to all their data and files.
+
+## 2. Employee Verification and Device Binding
+
+1. Admin creates an employee. Status is `0` (pending), and a random single-use `verification_token` is generated with an expiry.
+2. The employees table has a "Copy verification link" button. The link looks like `/verify/{token}`, and the admin sends it manually.
+3. When the employee opens the link on their device, the server generates a random device token, stores only its **hash** in `device_token_hash`, sets `device_token_expires_at = now + 1 month`, sets status to `1`, and invalidates the verification token. The raw token is saved in the browser's **localStorage**.
+4. Admin can "Re-verify / change device", which generates a new link, clears the old device token, and sets status back to `0`. The old device stops working immediately.
+5. **Session rule:** each successful check-in extends `device_token_expires_at` by another month. An expired token means the employee must be re-verified by the admin.
+
+## 3. Employee Side (common public route, e.g. `/attendance`)
+
+- The page reads the token from localStorage and sends it with every request (header). The server hashes it, finds the employee, and validates status and expiry. If there is no valid token, it shows "Device not verified, contact admin".
+- **Office network check:** `request()->ip()` must equal `office_ipv4_addr`, otherwise return an error alert ("Please come to the office and use your registered device"). Configure trusted proxies correctly.
+- The employee sees **Check In** and **Check Out** buttons (state-aware) and can view their own attendance history and summary (late, overtime, early leave counts per month).
+- **Overnight shifts:** an open attendance (no check-out) stays checkable-out until the employee's next `check_in_time` on the following day. So a check-out at 2 AM the next day is valid and counts toward the original date.
+- **Missing check-out:** once the next check-in window begins without a check-out, close the record automatically as early leave using `missing_checkout_early_leave_minutes` (scheduled command plus a check on next check-in).
+
+## 4. Attendance Calculation
+
+- **Late:** check_in_at > employee.check_in_time, and late_minutes is the difference.
+- **Early leave:** check_out_at < employee.check_out_time, and early_leave_minutes is the difference.
+- **Overtime:** check_out_at > employee.check_out_time, and overtime_minutes is the difference.
+- Put this logic in a dedicated service class (e.g. `AttendanceService`).
+
+## 5. Admin Panel (shadcn/ui)
+
+- **Dashboard/Calendar:** shows the current month with today active. Admin can search or jump to any date. Clicking a date opens a DataTable of all employees' check-in and check-out times for that day, with Late / Overtime / Early Leave badges.
+- **Manual edit and add:** admin can edit any record, or add one by selecting an employee (name + role) for the clicked date. These records get `is_manual = true`.
+- **Monthly report:** per employee, how many times and how many total minutes of late, overtime, and early leave in a month.
+- **Employees CRUD:** create, update, delete (with a confirmation dialog), image and PDF upload, copy verification link, re-verify device, status badge.
+- **Export:** all-time attendance export per employee or for all employees (xlsx).
+- **Settings page:** brandname, logo, favicon, office times, office IPv4, missing-checkout penalty.
+
+## 6. Structure and Quality
+
+- Strict MVC: thin controllers, Form Request validation, and services for business logic.
+- Route groups: `admin/*` (auth:admin + session timeout middleware), `verify/{token}`, and `attendance/*` (device-token middleware + office-IP middleware).
+- Use shadcn/ui components (Table, Calendar, Dialog, Form, Badge, Toast), responsive and clean.
+- Include migrations, a seeder (default admin and settings row), and brief setup instructions.
+- Follow Service Pattern for the Design pattern. So under Services the business logic will be written. 
+- It will be in a shared hossting, so make this way that no VPS needed to run the system.
+- For alerts use swal alerts 
+
+
+NB: admin email/password needs email OTP verification. So OTP will be sent to current mail (set in database as well) and only if OTP matches then can be changed. Send the OTP to users email address with a nice precise email template.
+default admin seeder: name: System Admin; email: admin@attendance.com; password: MyPass@2026#
+
+Lastly write a proper readme file as the documentation. 
+
