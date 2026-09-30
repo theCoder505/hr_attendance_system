@@ -21,6 +21,11 @@ Route::get('/', function () {
     return redirect()->route('attendance.index');
 })->name('home');
 
+// Alias for standard Laravel 'login' route name
+Route::get('/login', function () {
+    return redirect()->route('admin.login');
+})->name('login');
+
 /*
 |--------------------------------------------------------------------------
 | Employee Verification & Attendance Portal

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('otp', 10)->nullable();
             $table->timestamp('otp_expires_at')->nullable();
             $table->integer('session_time')->default(30); // in minutes
+            $table->boolean('two_factor_enabled')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });

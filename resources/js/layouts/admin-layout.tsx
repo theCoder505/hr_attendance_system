@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { showSuccess, showError, showWarning, showToast } from '@/lib/swal';
 import Swal from 'sweetalert2';
+import ThemeToggle from '@/components/theme-toggle';
 
 interface Props {
     children: React.ReactNode;
@@ -114,12 +115,15 @@ export default function AdminLayout({ children, title }: Props) {
                     </div>
                     <span className="font-bold text-base tracking-tight">{brandname}</span>
                 </div>
-                <button
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                    {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <ThemeToggle variant="dropdown" />
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 flex">
@@ -215,13 +219,16 @@ export default function AdminLayout({ children, title }: Props) {
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                title="Log Out"
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
-                            >
-                                <LogOut className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <ThemeToggle variant="dropdown" className="border-0 bg-transparent shadow-none" />
+                                <button
+                                    onClick={handleLogout}
+                                    title="Log Out"
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </aside>
@@ -243,13 +250,14 @@ export default function AdminLayout({ children, title }: Props) {
                             </h2>
                         </div>
                         <div className="flex items-center gap-3">
+                            <ThemeToggle variant="dropdown" />
                             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs font-medium border border-emerald-200 dark:border-emerald-800/40">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 Session Active ({auth?.admin?.session_time || 30}m timeout)
                             </div>
                             <button
                                 onClick={handleLogout}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                             >
                                 <LogOut className="h-3.5 w-3.5" />
                                 Logout

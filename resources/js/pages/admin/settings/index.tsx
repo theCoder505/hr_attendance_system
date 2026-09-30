@@ -12,8 +12,12 @@ import {
     Upload,
     CheckCircle2,
     Send,
+    Sun,
+    Moon,
+    Monitor,
 } from 'lucide-react';
 import { showSuccess, showError, showToast } from '@/lib/swal';
+import { useAppearance } from '@/hooks/use-appearance';
 
 interface Props {
     settings: {
@@ -24,11 +28,13 @@ interface Props {
         office_closing_time: string;
         office_ipv4_addr: string;
         missing_checkout_early_leave_minutes: number;
+        admin_login_2fa_enabled: boolean;
     };
     admin: {
         name: string;
         email: string;
         session_time: number;
+        two_factor_enabled: boolean;
     };
     clientIp: string;
 }
@@ -36,6 +42,7 @@ interface Props {
 export default function SettingsIndex({ settings, admin, clientIp }: Props) {
     const [activeTab, setActiveTab] = useState<'general' | 'security'>('general');
     const [otpRequested, setOtpRequested] = useState(false);
+    const { appearance, updateAppearance } = useAppearance();
 
     // Form 1: General Settings
     const generalForm = useForm({
@@ -44,6 +51,7 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
         office_closing_time: settings.office_closing_time || '17:00',
         office_ipv4_addr: settings.office_ipv4_addr || '127.0.0.1',
         missing_checkout_early_leave_minutes: settings.missing_checkout_early_leave_minutes || 60,
+        admin_login_2fa_enabled: settings.admin_login_2fa_enabled ?? true,
         logo: null as File | null,
         favicon: null as File | null,
     });
@@ -52,6 +60,7 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
     const profileForm = useForm({
         name: admin.name || '',
         session_time: admin.session_time || 30,
+        two_factor_enabled: admin.two_factor_enabled ?? true,
     });
 
     // Form 3: Credentials with OTP
@@ -328,6 +337,92 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                     Default is 30 minutes. Auto-logs out admin after no activity.
                                 </span>
                             </div>
+
+                            <div className="md:col-span-2 pt-2">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                            <Shield className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                                                Login Two-Factor Authentication (2FA)
+                                            </h4>
+                                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                                When enabled, admin login requires email OTP verification. When disabled, you sign in directly with password.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                        <input
+                                            type="checkbox"
+                                            checked={profileForm.data.two_factor_enabled}
+                                            onChange={(e) => profileForm.setData('two_factor_enabled', e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-300 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Appearance Theme Selector */}
+                            <div className="md:col-span-2 pt-1">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                                            {appearance === 'dark' ? <Moon className="h-5 w-5" /> : appearance === 'light' ? <Sun className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                                                Interface Appearance (Theme)
+                                            </h4>
+                                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                                Choose your visual appearance: Light, Dark, or System Sync.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="inline-flex p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-xl gap-1 shrink-0 self-start sm:self-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => updateAppearance('light')}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                                appearance === 'light'
+                                                    ? 'bg-white text-slate-900 shadow-sm'
+                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            <Sun className="h-3.5 w-3.5 text-amber-500" />
+                                            Light
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateAppearance('dark')}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                                appearance === 'dark'
+                                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            <Moon className="h-3.5 w-3.5 text-indigo-300" />
+                                            Dark
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateAppearance('system')}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                                appearance === 'system'
+                                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            <Monitor className="h-3.5 w-3.5 text-slate-400" />
+                                            System
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex justify-end mt-5">
@@ -336,7 +431,7 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                 disabled={profileForm.processing}
                                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer"
                             >
-                                {profileForm.processing ? 'Saving...' : 'Update Profile'}
+                                {profileForm.processing ? 'Saving...' : 'Update Profile & 2FA Setting'}
                             </button>
                         </div>
                     </form>

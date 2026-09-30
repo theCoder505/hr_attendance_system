@@ -19,12 +19,14 @@ class WebsiteSetting extends Model
         'office_closing_time',
         'office_ipv4_addr',
         'missing_checkout_early_leave_minutes',
+        'admin_login_2fa_enabled',
     ];
 
     protected function casts(): array
     {
         return [
             'missing_checkout_early_leave_minutes' => 'integer',
+            'admin_login_2fa_enabled' => 'boolean',
         ];
     }
 
@@ -44,6 +46,7 @@ class WebsiteSetting extends Model
                 'office_closing_time' => '17:00:00',
                 'office_ipv4_addr' => '127.0.0.1',
                 'missing_checkout_early_leave_minutes' => 60,
+                'admin_login_2fa_enabled' => true,
             ]);
         }
 

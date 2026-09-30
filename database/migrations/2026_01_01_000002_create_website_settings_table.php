@@ -20,6 +20,7 @@ return new class extends Migration
             $table->time('office_closing_time')->default('17:00:00');
             $table->string('office_ipv4_addr')->default('127.0.0.1');
             $table->integer('missing_checkout_early_leave_minutes')->default(60);
+            $table->boolean('admin_login_2fa_enabled')->default(true);
             $table->timestamps();
         });
     }

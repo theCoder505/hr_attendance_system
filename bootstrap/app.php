@@ -23,6 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.device' => \App\Http\Middleware\VerifyDeviceToken::class,
             'office.network' => \App\Http\Middleware\OfficeNetworkMiddleware::class,
         ]);
+
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            return route('admin.login');
+        });
+
+        $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request) {
+            return route('admin.dashboard');
+        });
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         $schedule->command('attendance:close-missing-checkouts')->hourly();

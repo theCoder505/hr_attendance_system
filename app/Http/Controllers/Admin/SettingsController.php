@@ -34,6 +34,7 @@ class SettingsController extends Controller
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'session_time' => $admin->session_time,
+                'two_factor_enabled' => (bool) $admin->two_factor_enabled,
             ],
             'clientIp' => $request->ip(),
         ]);
@@ -46,6 +47,7 @@ class SettingsController extends Controller
     {
         $settings = WebsiteSetting::current();
         $data = $request->validated();
+        $data['admin_login_2fa_enabled'] = $request->boolean('admin_login_2fa_enabled');
 
         if ($request->hasFile('logo')) {
             if (! empty($settings->logo) && Storage::disk('public')->exists($settings->logo)) {
@@ -67,12 +69,14 @@ class SettingsController extends Controller
     }
 
     /**
-     * Update basic admin profile details (Name, Session Timeout).
+     * Update basic admin profile details (Name, Session Timeout, 2FA preference).
      */
     public function updateProfile(UpdateAdminProfileRequest $request): RedirectResponse
     {
         $admin = Auth::guard('admin')->user();
-        $admin->update($request->validated());
+        $data = $request->validated();
+        $data['two_factor_enabled'] = $request->boolean('two_factor_enabled');
+        $admin->update($data);
 
         return back()->with('success', 'Admin profile updated successfully.');
     }

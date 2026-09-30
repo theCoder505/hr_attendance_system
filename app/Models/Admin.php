@@ -31,6 +31,7 @@ class Admin extends Authenticatable
         'otp',
         'otp_expires_at',
         'session_time',
+        'two_factor_enabled',
     ];
 
     /**
@@ -55,6 +56,7 @@ class Admin extends Authenticatable
             'password' => 'hashed',
             'otp_expires_at' => 'datetime',
             'session_time' => 'integer',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

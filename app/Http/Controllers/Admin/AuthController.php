@@ -37,7 +37,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle initial credentials login and send OTP.
+     * Handle initial credentials login and check if 2FA is enabled.
      */
     public function login(AdminLoginRequest $request): RedirectResponse
     {
@@ -49,10 +49,23 @@ class AuthController extends Controller
             ]);
         }
 
-        // Generate OTP
+        // Determine if 2FA OTP verification is required based on saved admin->two_factor_enabled status (0 or 1)
+        $twoFactorEnabled = (bool) $admin->two_factor_enabled;
+
+        // If 2FA is disabled, log in immediately without OTP
+        if (! $twoFactorEnabled) {
+            session()->forget('admin_pending_id');
+            session()->regenerate();
+
+            Auth::guard('admin')->login($admin);
+            session(['admin_last_activity' => now()]);
+
+            return redirect()->route('admin.dashboard')->with('success', 'Logged in successfully! Welcome back.');
+        }
+
+        // 2FA is enabled: Generate OTP and send email
         $otp = $admin->generateOtp(10);
 
-        // Send OTP email
         try {
             Mail::to($admin->email)->send(new AdminOtpMail($otp, 'Admin Panel Login'));
         } catch (\Throwable $e) {
