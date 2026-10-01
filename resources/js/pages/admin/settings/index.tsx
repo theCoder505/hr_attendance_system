@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { showSuccess, showError, showToast } from '@/lib/swal';
 import { useAppearance } from '@/hooks/use-appearance';
+import ImageUploadPreview from '@/components/image-upload-preview';
 
 interface Props {
     settings: {
@@ -75,7 +76,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
     const handleGeneralSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         generalForm.post('/administration-control/settings/general', {
-            onSuccess: () => showToast('General settings updated successfully!', 'success'),
+            onSuccess: () => {
+                generalForm.setData((prev) => ({ ...prev, logo: null, favicon: null }));
+                showToast('General settings updated successfully!', 'success');
+            },
         });
     };
 
@@ -165,39 +169,29 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                 )}
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                    Brand Logo
-                                </label>
-                                {settings.logo && (
-                                    <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg inline-block border border-slate-200 dark:border-slate-700">
-                                        <img src={`/storage/${settings.logo}`} alt="Logo" className="h-8 object-contain" />
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => generalForm.setData('logo', e.target.files?.[0] || null)}
-                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700"
-                                />
-                            </div>
+                            <ImageUploadPreview
+                                id="setting-logo"
+                                label="Brand Logo"
+                                currentImageUrl={settings.logo ? `/storage/${settings.logo}` : null}
+                                selectedFile={generalForm.data.logo}
+                                onFileChange={(file) => generalForm.setData('logo', file)}
+                                accept="image/*,.jpeg,.jpg,.png,.webp,.svg"
+                                aspectRatio="auto"
+                                helperText="PNG, JPG, SVG or WEBP (Max 2MB)"
+                                error={generalForm.errors.logo}
+                            />
 
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                    Favicon Icon
-                                </label>
-                                {settings.favicon && (
-                                    <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg inline-block border border-slate-200 dark:border-slate-700">
-                                        <img src={`/storage/${settings.favicon}`} alt="Favicon" className="h-6 w-6 object-contain" />
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/*,.ico"
-                                    onChange={(e) => generalForm.setData('favicon', e.target.files?.[0] || null)}
-                                    className="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700"
-                                />
-                            </div>
+                            <ImageUploadPreview
+                                id="setting-favicon"
+                                label="Favicon Icon"
+                                currentImageUrl={settings.favicon ? `/storage/${settings.favicon}` : null}
+                                selectedFile={generalForm.data.favicon}
+                                onFileChange={(file) => generalForm.setData('favicon', file)}
+                                accept="image/*,.ico,.png,.svg"
+                                aspectRatio="square"
+                                helperText="ICO, PNG or SVG (Max 1MB)"
+                                error={generalForm.errors.favicon}
+                            />
                         </div>
                     </div>
 

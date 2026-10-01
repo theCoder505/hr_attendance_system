@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { showConfirm, showSuccess, showError, showToast } from '@/lib/swal';
 import Swal from 'sweetalert2';
+import ImageUploadPreview from '@/components/image-upload-preview';
+import FileUploadPreview from '@/components/file-upload-preview';
 
 interface Props {
     employees: {
@@ -418,7 +420,10 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                                 </p>
                             </div>
                             <button
-                                onClick={() => setCreateModalOpen(false)}
+                                onClick={() => {
+                                    setCreateModalOpen(false);
+                                    createForm.reset();
+                                }}
                                 className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                             >
                                 <X className="h-5 w-5" />
@@ -554,35 +559,35 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Employee Photo (Optional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => createForm.setData('image', e.target.files?.[0] || null)}
-                                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                                    />
-                                </div>
+                                <ImageUploadPreview
+                                    id="create-employee-photo"
+                                    label="Employee Photo (Optional)"
+                                    selectedFile={createForm.data.image}
+                                    onFileChange={(file) => createForm.setData('image', file)}
+                                    accept="image/*,.jpeg,.jpg,.png,.webp,.gif,.svg"
+                                    aspectRatio="circle"
+                                    helperText="JPG, PNG, WEBP (Max 4MB)"
+                                    error={createForm.errors.image}
+                                />
 
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Appointment Letter (PDF, Optional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,application/pdf"
-                                        onChange={(e) => createForm.setData('appointment_letter', e.target.files?.[0] || null)}
-                                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                                    />
-                                </div>
+                                <FileUploadPreview
+                                    id="create-employee-letter"
+                                    label="Appointment Letter (PDF, Optional)"
+                                    selectedFile={createForm.data.appointment_letter}
+                                    onFileChange={(file) => createForm.setData('appointment_letter', file)}
+                                    accept=".pdf,application/pdf"
+                                    helperText="Max 10MB PDF"
+                                    error={createForm.errors.appointment_letter}
+                                />
                             </div>
 
                             <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
                                 <button
                                     type="button"
-                                    onClick={() => setCreateModalOpen(false)}
+                                    onClick={() => {
+                                        setCreateModalOpen(false);
+                                        createForm.reset();
+                                    }}
                                     className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                     Cancel
@@ -612,7 +617,11 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                                 <p className="text-xs text-slate-400">UID: {selectedEmployee.uid}</p>
                             </div>
                             <button
-                                onClick={() => setEditModalOpen(false)}
+                                onClick={() => {
+                                    setEditModalOpen(false);
+                                    editForm.reset();
+                                    setSelectedEmployee(null);
+                                }}
                                 className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                             >
                                 <X className="h-5 w-5" />
@@ -714,35 +723,39 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Replace Photo (Optional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => editForm.setData('image', e.target.files?.[0] || null)}
-                                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700"
-                                    />
-                                </div>
+                                <ImageUploadPreview
+                                    id="edit-employee-photo"
+                                    label="Replace Photo (Optional)"
+                                    currentImageUrl={selectedEmployee?.image ? `/storage/${selectedEmployee.image}` : null}
+                                    selectedFile={editForm.data.image}
+                                    onFileChange={(file) => editForm.setData('image', file)}
+                                    accept="image/*,.jpeg,.jpg,.png,.webp,.gif,.svg"
+                                    aspectRatio="circle"
+                                    helperText="JPG, PNG, WEBP (Max 4MB)"
+                                    error={editForm.errors.image}
+                                />
 
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                        Replace Appointment Letter (PDF, Optional)
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept=".pdf,application/pdf"
-                                        onChange={(e) => editForm.setData('appointment_letter', e.target.files?.[0] || null)}
-                                        className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700"
-                                    />
-                                </div>
+                                <FileUploadPreview
+                                    id="edit-employee-letter"
+                                    label="Replace Appointment Letter (PDF, Optional)"
+                                    currentFileUrl={selectedEmployee?.appointment_letter ? `/storage/${selectedEmployee.appointment_letter}` : null}
+                                    currentFileName={selectedEmployee ? `${selectedEmployee.name}_appointment.pdf` : 'Appointment Letter'}
+                                    selectedFile={editForm.data.appointment_letter}
+                                    onFileChange={(file) => editForm.setData('appointment_letter', file)}
+                                    accept=".pdf,application/pdf"
+                                    helperText="Max 10MB PDF"
+                                    error={editForm.errors.appointment_letter}
+                                />
                             </div>
 
                             <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
                                 <button
                                     type="button"
-                                    onClick={() => setEditModalOpen(false)}
+                                    onClick={() => {
+                                        setEditModalOpen(false);
+                                        editForm.reset();
+                                        setSelectedEmployee(null);
+                                    }}
                                     className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                     Cancel

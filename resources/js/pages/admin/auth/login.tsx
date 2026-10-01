@@ -46,37 +46,21 @@ export default function AdminLogin({ brandname, logo }: Props) {
             <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-violet-500/5 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="max-w-md w-full relative z-10">
+                {/* Login Card */}
+                <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl dark:shadow-2xl shadow-slate-200/50 dark:shadow-black/50">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-xl shadow-indigo-500/30 mb-4 ring-8 ring-indigo-500/10">
+                    <div className="inline-flex items-center justify-center w-50">
                         {logo ? (
-                            <img src={`/storage/${logo}`} alt="Logo" className="h-10 w-10 object-contain" />
+                            <img src={`/storage/${logo}`} alt="Logo" className="w-full h-auto object-contain dark:invert dark:brightness-0" />
                         ) : (
                             <Shield className="h-8 w-8" />
                         )}
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-1.5">
-                        {brandname}
-                    </h1>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Administration Control Portal
-                    </p>
                 </div>
-
-                {/* Login Card */}
-                <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl dark:shadow-2xl shadow-slate-200/50 dark:shadow-black/50">
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Sign In</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Enter your administrative credentials to sign in.
-                        </p>
-                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                Administrator Email
-                            </label>
                             <div className="relative">
                                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
@@ -94,9 +78,6 @@ export default function AdminLogin({ brandname, logo }: Props) {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                Password
-                            </label>
                             <div className="relative">
                                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                                 <input
@@ -104,7 +85,7 @@ export default function AdminLogin({ brandname, logo }: Props) {
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     required
-                                    placeholder="••••••••••••"
+                                    placeholder="Admin Password"
                                     className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-10 pr-11 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all outline-none"
                                 />
                                 <button
@@ -142,14 +123,11 @@ export default function AdminLogin({ brandname, logo }: Props) {
                         </button>
                     </form>
 
-                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2.5 text-slate-500 dark:text-slate-400 text-xs">
+                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2.5 text-slate-500 dark:text-slate-400 text-xs justify-center
+                    ">
                         <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                         <span>Protected Portal &bull; Session Inactivity Protection</span>
                     </div>
-                </div>
-
-                <div className="mt-8 text-center text-xs text-slate-500">
-                    &copy; {new Date().getFullYear()} {brandname}. Designed for Shared Hosting & Production Reliability.
                 </div>
             </div>
         </div>

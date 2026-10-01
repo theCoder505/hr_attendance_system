@@ -1,25 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Head, Link } from '@inertiajs/react';
-import {
-    Clock,
-    Calendar,
-    Shield,
-    ShieldAlert,
-    CheckCircle2,
-    LogIn,
-    LogOut,
-    AlertTriangle,
-    RefreshCw,
-    User,
-    TrendingUp,
-    Briefcase,
-    Building2,
-    Wifi,
-    ExternalLink,
-} from 'lucide-react';
-import { showSuccess, showError, showWarning, showToast, showConfirm } from '@/lib/swal';
-import Swal from 'sweetalert2';
 import ThemeToggle from '@/components/theme-toggle';
+import { showConfirm, showError, showSuccess } from '@/lib/swal';
+import { Head } from '@inertiajs/react';
+import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Wifi } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Props {
     brandname: string;
@@ -29,13 +12,7 @@ interface Props {
     clientIp: string;
 }
 
-export default function EmployeeAttendancePortal({
-    brandname,
-    logo,
-    officeStartingTime,
-    officeClosingTime,
-    clientIp,
-}: Props) {
+export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: Props) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -79,7 +56,7 @@ export default function EmployeeAttendancePortal({
         try {
             const res = await fetch('/attendance/status', {
                 headers: {
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                     'X-Device-Token': token,
                 },
             });
@@ -89,10 +66,7 @@ export default function EmployeeAttendancePortal({
             if (!res.ok) {
                 if (data.code === 'OFFICE_NETWORK_REQUIRED') {
                     setNetworkError(data.message || 'Please come to the office and use your registered device');
-                    showError(
-                        'Office Network Required',
-                        'Please connect to the designated office network to access attendance functions.'
-                    );
+                    showError('Office Network Required', 'Please connect to the designated office network to access attendance functions.');
                 } else {
                     setUnverifiedMessage(data.message || 'Device not verified, contact admin');
                 }
@@ -121,7 +95,7 @@ export default function EmployeeAttendancePortal({
         try {
             const res = await fetch('/attendance/history', {
                 headers: {
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                     'X-Device-Token': token,
                 },
             });
@@ -134,6 +108,14 @@ export default function EmployeeAttendancePortal({
         }
     };
 
+    const getCsrfToken = () => {
+        const meta = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null;
+        if (meta?.content) return meta.content;
+
+        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    };
+
     // Handle Check In
     const handleCheckIn = async () => {
         const token = localStorage.getItem('device_token');
@@ -143,21 +125,27 @@ export default function EmployeeAttendancePortal({
             'Confirm Clock In',
             `Ready to clock in for today? Current time: ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`,
             'Yes, Clock In Now',
-            'info'
+            'info',
         );
 
         if (!confirmed) return;
 
         setActionLoading(true);
         try {
+            const csrfToken = getCsrfToken();
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Device-Token': token,
+            };
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+                headers['X-XSRF-TOKEN'] = csrfToken;
+            }
+
             const res = await fetch('/attendance/check-in', {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Device-Token': token,
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                },
+                headers,
             });
 
             const data = await res.json();
@@ -187,21 +175,27 @@ export default function EmployeeAttendancePortal({
                 ? `Note: Current time is before your scheduled shift end (${employee.check_out_time.substring(0, 5)}). Early leave minutes will be calculated.`
                 : 'Are you ready to clock out and complete your shift for today?',
             'Yes, Clock Out Now',
-            isEarly ? 'warning' : 'info'
+            isEarly ? 'warning' : 'info',
         );
 
         if (!confirmed) return;
 
         setActionLoading(true);
         try {
+            const csrfToken = getCsrfToken();
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Device-Token': token,
+            };
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+                headers['X-XSRF-TOKEN'] = csrfToken;
+            }
+
             const res = await fetch('/attendance/check-out', {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Device-Token': token,
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                },
+                headers,
             });
 
             const data = await res.json();
@@ -229,59 +223,42 @@ export default function EmployeeAttendancePortal({
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 text-slate-800 dark:text-slate-100 flex flex-col antialiased selection:bg-indigo-500 selection:text-white transition-colors">
+        <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800 antialiased transition-colors selection:bg-indigo-500 selection:text-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:text-slate-100">
             <Head title={`Employee Attendance - ${brandname}`} />
 
             {/* Glowing accents */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-80 bg-indigo-600/5 dark:bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="pointer-events-none absolute top-0 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-indigo-600/5 blur-3xl dark:bg-indigo-600/10" />
 
             {/* Top Navigation Bar */}
-            <header className="relative z-10 border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/60 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between">
+            <header className="relative z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3.5 backdrop-blur-md sm:px-8 dark:border-slate-800/80 dark:bg-slate-950/60">
                 <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-600/25">
-                        {logo ? (
-                            <img src={`/storage/${logo}`} alt="Logo" className="h-6 w-6 object-contain" />
-                        ) : (
-                            <Clock className="h-5 w-5" />
-                        )}
-                    </div>
-                    <div>
-                        <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white">{brandname}</span>
-                        <span className="hidden sm:inline-block text-[11px] text-slate-500 dark:text-slate-400 ml-2 font-mono">
-                            Attendance Portal
-                        </span>
+                    <div className="w-40">
+                        {logo ? <img src={`/storage/${logo}`} alt="Logo" className="h-auto w-full object-contain" /> : <Clock className="h-5 w-5" />}
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2.5 sm:gap-3">
                     <ThemeToggle variant="dropdown" />
 
-                    <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/80 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800">
+                    <div className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs text-slate-600 sm:flex dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
                         <Wifi className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
                         <span>IP: {clientIp}</span>
                     </div>
-
-                    <Link
-                        href="/administration-control/login"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
-                        <Shield className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                        Admin Access
-                    </Link>
                 </div>
             </header>
 
             {/* Main Content Area */}
-            <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 py-8 sm:py-10 flex flex-col justify-start">
+            <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col justify-start px-4 py-8 sm:py-10">
                 {/* Network Error Alert Banner */}
                 {networkError && (
-                    <div className="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 flex items-center gap-3 shadow-sm">
+                    <div className="mb-6 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 shadow-sm dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
                         <ShieldAlert className="h-6 w-6 shrink-0 text-rose-600 dark:text-rose-400" />
                         <div className="text-xs">
                             <p className="font-bold text-rose-900 dark:text-rose-200">Office Network Check Failed</p>
                             <p className="mt-0.5">{networkError}</p>
-                            <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1">
-                                Your detected IP is <span className="font-mono font-semibold">{clientIp}</span>. You must connect to your company office network.
+                            <p className="mt-1 text-[11px] text-rose-700 dark:text-rose-400">
+                                Your detected IP is <span className="font-mono font-semibold">{clientIp}</span>. You must connect to your company
+                                office network.
                             </p>
                         </div>
                     </div>
@@ -289,27 +266,29 @@ export default function EmployeeAttendancePortal({
 
                 {/* Case 1: Unverified Device Screen */}
                 {(!hasToken || unverifiedMessage) && !loading && (
-                    <div className="my-auto max-w-md mx-auto w-full bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 text-center shadow-xl dark:shadow-2xl shadow-slate-200/50 dark:shadow-black/60">
-                        <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 mb-5">
+                    <div className="mx-auto my-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white/90 p-6 text-center shadow-xl shadow-slate-200/50 backdrop-blur-xl sm:p-8 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-2xl dark:shadow-black/60">
+                        <div className="mb-5 inline-flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/20 bg-amber-500/10 text-amber-500 dark:text-amber-400">
                             <ShieldAlert className="h-10 w-10" />
                         </div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Device Not Verified</h2>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                        <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">Device Not Verified</h2>
+                        <p className="mb-6 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                             {unverifiedMessage || 'Device not verified, contact admin'}
                         </p>
 
-                        <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl text-left text-xs text-slate-600 dark:text-slate-400 mb-6 space-y-2">
+                        <div className="mb-6 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
                             <p className="font-semibold text-slate-800 dark:text-slate-200">How to get your device verified:</p>
-                            <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-400">
+                            <ol className="list-inside list-decimal space-y-1.5 text-slate-600 dark:text-slate-400">
                                 <li>Contact your company Administrator or HR department.</li>
-                                <li>Ask for your personal <strong>Single-Use Verification Link</strong>.</li>
+                                <li>
+                                    Ask for your personal <strong>Single-Use Verification Link</strong>.
+                                </li>
                                 <li>Open the link on this browser to register and activate your device.</li>
                             </ol>
                         </div>
 
                         <button
                             onClick={fetchStatus}
-                            className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700"
                         >
                             <RefreshCw className="h-3.5 w-3.5" />
                             Retry Verification Check
@@ -319,8 +298,8 @@ export default function EmployeeAttendancePortal({
 
                 {/* Case 2: Loading State */}
                 {loading && (
-                    <div className="my-auto text-center py-20">
-                        <div className="inline-block h-10 w-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                    <div className="my-auto py-20 text-center">
+                        <div className="mb-4 inline-block h-10 w-10 animate-spin rounded-full border-4 border-indigo-500/30 border-t-indigo-500" />
                         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Authenticating device & network credentials...</p>
                     </div>
                 )}
@@ -329,62 +308,66 @@ export default function EmployeeAttendancePortal({
                 {!loading && hasToken && employee && (
                     <div className="space-y-6">
                         {/* Employee Welcome & Clock Header */}
-                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-lg dark:shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex flex-col items-center justify-between gap-6 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-lg backdrop-blur-xl sm:p-7 md:flex-row dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-xl">
                             {/* Employee info */}
-                            <div className="flex items-center gap-4 text-left w-full md:w-auto">
-                                <div className="h-16 w-16 rounded-2xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 text-xl shrink-0 shadow-inner">
+                            <div className="flex w-full items-center gap-4 text-left md:w-auto">
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-xl font-bold text-indigo-600 shadow-inner dark:border-indigo-500/30 dark:bg-indigo-600/20 dark:text-indigo-400">
                                     {employee.name.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white">
                                             {employee.name}
                                         </h1>
-                                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-full">
+                                        <span className="hidden items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 sm:inline-flex dark:border-emerald-800/50 dark:bg-emerald-950/60 dark:text-emerald-400">
                                             <CheckCircle2 className="h-3 w-3" />
                                             Registered Device
                                         </span>
                                     </div>
-                                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">
-                                        {employee.role} &bull; <span className="text-slate-500 dark:text-slate-400 font-mono">{employee.uid}</span>
+                                    <p className="mt-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                        {employee.role} &bull; <span className="font-mono text-slate-500 dark:text-slate-400">{employee.uid}</span>
                                     </p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                                        Assigned Shift: <span className="text-slate-800 dark:text-slate-200 font-mono font-medium">{employee.check_in_time.substring(0, 5)} - {employee.check_out_time.substring(0, 5)}</span> ({employee.working_hours}h)
+                                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                        Assigned Shift:{' '}
+                                        <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                                            {employee.check_in_time.substring(0, 5)} - {employee.check_out_time.substring(0, 5)}
+                                        </span>{' '}
+                                        ({employee.working_hours}h)
                                     </p>
                                 </div>
                             </div>
 
                             {/* Live Clock Display */}
-                            <div className="text-center md:text-right bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl px-6 py-4 w-full md:w-auto shadow-inner">
-                                <div className="font-mono text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-wider">
+                            <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center shadow-inner md:w-auto md:text-right dark:border-slate-800/80 dark:bg-slate-950/60">
+                                <div className="font-mono text-3xl font-extrabold tracking-wider text-slate-900 sm:text-4xl dark:text-white">
                                     {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                                 </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                                <div className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                                     {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                                 </div>
                             </div>
                         </div>
 
                         {/* Action Hero Section: Check In / Check Out */}
-                        <div className="bg-gradient-to-br from-indigo-50/70 via-white to-violet-50/60 dark:from-slate-900 dark:to-indigo-950/60 border border-indigo-100 dark:border-indigo-900/40 rounded-3xl p-6 sm:p-10 text-center shadow-xl dark:shadow-2xl relative overflow-hidden">
-                            <div className="max-w-xl mx-auto space-y-6">
+                        <div className="relative overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-violet-50/60 p-6 text-center shadow-xl sm:p-10 dark:border-indigo-900/40 dark:from-slate-900 dark:to-indigo-950/60 dark:shadow-2xl">
+                            <div className="mx-auto max-w-xl space-y-6">
                                 {/* State status badge */}
                                 {canCheckIn && (
-                                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
                                         <LogIn className="h-4 w-4" />
                                         Ready to Clock In for Today
                                     </div>
                                 )}
 
                                 {canCheckOut && (
-                                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
                                         <LogOut className="h-4 w-4" />
                                         Shift Currently In Progress
                                     </div>
                                 )}
 
                                 {!canCheckIn && !canCheckOut && (
-                                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 text-xs font-semibold">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-xs font-semibold text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400">
                                         <CheckCircle2 className="h-4 w-4" />
                                         Today's Shift Completed
                                     </div>
@@ -392,45 +375,53 @@ export default function EmployeeAttendancePortal({
 
                                 {/* Action Header text */}
                                 <div>
-                                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                                    <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
                                         {canCheckIn && 'Welcome! Start Your Workday'}
                                         {canCheckOut && 'You Are Currently Clocked In'}
                                         {!canCheckIn && !canCheckOut && 'Great Job! All Shift Logs Recorded'}
                                     </h2>
-                                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-2">
-                                        {canCheckIn && `Your scheduled start time is ${employee.check_in_time.substring(0, 5)}. Click below to record your check-in timestamp.`}
+                                    <p className="mt-2 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+                                        {canCheckIn &&
+                                            `Your scheduled start time is ${employee.check_in_time.substring(0, 5)}. Click below to record your check-in timestamp.`}
                                         {canCheckOut && (
                                             <>
-                                                Logged in at <span className="font-mono text-slate-900 dark:text-white font-semibold">{formatTime(activeAttendance?.check_in_at)}</span>.
+                                                Logged in at{' '}
+                                                <span className="font-mono font-semibold text-slate-900 dark:text-white">
+                                                    {formatTime(activeAttendance?.check_in_at)}
+                                                </span>
+                                                .
                                                 {activeAttendance?.late_minutes > 0 && (
-                                                    <span className="text-amber-600 dark:text-amber-400 ml-1.5">({activeAttendance.late_minutes}m late)</span>
-                                                )}
-                                                {activeAttendance?.date !== currentTime.toISOString().split('T')[0] && (
-                                                    <span className="block text-violet-700 dark:text-violet-300 text-xs mt-1 font-semibold">
-                                                        Overnight shift active from yesterday ({activeAttendance?.date})
+                                                    <span className="ml-1.5 text-amber-600 dark:text-amber-400">
+                                                        ({activeAttendance.late_minutes}m late)
                                                     </span>
                                                 )}
                                             </>
                                         )}
                                         {!canCheckIn && !canCheckOut && (
                                             <>
-                                                In: <span className="font-mono text-slate-900 dark:text-white font-medium">{formatTime(todayRecord?.check_in_at)}</span> &bull;
-                                                Out: <span className="font-mono text-slate-900 dark:text-white font-medium ml-1">{formatTime(todayRecord?.check_out_at)}</span>
+                                                In:{' '}
+                                                <span className="font-mono font-medium text-slate-900 dark:text-white">
+                                                    {formatTime(todayRecord?.check_in_at)}
+                                                </span>{' '}
+                                                &bull; Out:{' '}
+                                                <span className="ml-1 font-mono font-medium text-slate-900 dark:text-white">
+                                                    {formatTime(todayRecord?.check_out_at)}
+                                                </span>
                                             </>
                                         )}
                                     </p>
                                 </div>
 
                                 {/* Primary Glow Buttons */}
-                                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+                                <div className="flex flex-col items-center justify-center gap-4 pt-2 sm:flex-row">
                                     {canCheckIn && (
                                         <button
                                             onClick={handleCheckIn}
                                             disabled={actionLoading}
-                                            className="w-full sm:w-auto min-w-[240px] px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                                            className="flex w-full min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-emerald-600/30 transition-all hover:scale-105 hover:from-emerald-500 hover:to-teal-500 active:scale-95 disabled:opacity-50 sm:w-auto"
                                         >
                                             {actionLoading ? (
-                                                <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                                             ) : (
                                                 <>
                                                     <LogIn className="h-5 w-5" />
@@ -444,10 +435,10 @@ export default function EmployeeAttendancePortal({
                                         <button
                                             onClick={handleCheckOut}
                                             disabled={actionLoading}
-                                            className="w-full sm:w-auto min-w-[240px] px-8 py-4 bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-amber-600/30 flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                                            className="flex w-full min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-amber-600 to-indigo-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-amber-600/30 transition-all hover:scale-105 hover:from-amber-500 hover:to-indigo-500 active:scale-95 disabled:opacity-50 sm:w-auto"
                                         >
                                             {actionLoading ? (
-                                                <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                                             ) : (
                                                 <>
                                                     <LogOut className="h-5 w-5" />
@@ -458,7 +449,7 @@ export default function EmployeeAttendancePortal({
                                     )}
 
                                     {!canCheckIn && !canCheckOut && (
-                                        <div className="p-4 bg-white/80 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-2xl inline-flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                                        <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
                                             <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
                                             <span>Thank you! Your full attendance record for today is locked and synchronized.</span>
                                         </div>
@@ -470,35 +461,45 @@ export default function EmployeeAttendancePortal({
                         {/* Monthly Summary Statistics */}
                         {monthlyStats && (
                             <div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 px-1">
+                                <h3 className="mb-3 px-1 text-sm font-bold tracking-wider text-slate-900 uppercase dark:text-white">
                                     This Month's Attendance Summary
                                 </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                                    <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Days Present</span>
-                                        <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
-                                            {monthlyStats.total_days} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">days</span>
+                                <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Days Present</span>
+                                        <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">
+                                            {monthlyStats.total_days}{' '}
+                                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">days</span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Late Minutes</span>
-                                        <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
-                                            {monthlyStats.late_total_minutes} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({monthlyStats.late_count} times)</span>
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Late Minutes</span>
+                                        <div className="mt-1 text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+                                            {monthlyStats.late_total_minutes}{' '}
+                                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                                                ({monthlyStats.late_count} times)
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Early Leaves</span>
-                                        <div className="text-2xl font-extrabold text-orange-600 dark:text-orange-400 mt-1">
-                                            {monthlyStats.early_leave_total_minutes} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({monthlyStats.early_leave_count} times)</span>
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Early Leaves</span>
+                                        <div className="mt-1 text-2xl font-extrabold text-orange-600 dark:text-orange-400">
+                                            {monthlyStats.early_leave_total_minutes}{' '}
+                                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                                                ({monthlyStats.early_leave_count} times)
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Overtime Logged</span>
-                                        <div className="text-2xl font-extrabold text-violet-600 dark:text-violet-400 mt-1">
-                                            {monthlyStats.overtime_total_minutes} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">({monthlyStats.overtime_count} times)</span>
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Overtime Logged</span>
+                                        <div className="mt-1 text-2xl font-extrabold text-violet-600 dark:text-violet-400">
+                                            {monthlyStats.overtime_total_minutes}{' '}
+                                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                                                ({monthlyStats.overtime_count} times)
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -506,14 +507,12 @@ export default function EmployeeAttendancePortal({
                         )}
 
                         {/* Recent Attendance Log Table */}
-                        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-                            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                                    Your Recent Monthly Log
-                                </h3>
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                            <div className="flex items-center justify-between border-b border-slate-200 p-4 sm:p-5 dark:border-slate-800">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Your Recent Monthly Log</h3>
                                 <button
                                     onClick={fetchStatus}
-                                    className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                    className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
                                     title="Refresh Log"
                                 >
                                     <RefreshCw className="h-3.5 w-3.5" />
@@ -523,14 +522,24 @@ export default function EmployeeAttendancePortal({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs">
                                     <thead>
-                                        <tr className="bg-slate-50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                                        <tr className="border-b border-slate-200 bg-slate-50 font-semibold tracking-wider text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
                                             <th className="py-3 pl-4">Date</th>
-                                            <th className="py-3">Check In</th>
-                                            <th className="py-3">Check Out</th>
-                                            <th className="py-3">Late</th>
-                                            <th className="py-3">Early Leave</th>
-                                            <th className="py-3">Overtime</th>
-                                            <th className="py-3 text-right pr-4">Status</th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Check In</div>
+                                            </th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Check Out</div>
+                                            </th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Late</div>
+                                            </th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Early Leave</div>
+                                            </th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Overtime</div>
+                                            </th>
+                                            <th className="py-3 pr-4 text-right">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
@@ -542,41 +551,61 @@ export default function EmployeeAttendancePortal({
                                             </tr>
                                         ) : (
                                             history.map((rec) => (
-                                                <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                                <tr key={rec.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/30">
                                                     <td className="py-3 pl-4 font-medium text-slate-900 dark:text-white">
-                                                        {new Date(rec.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' })}
+                                                        <div className="min-w-30 text-left">
+                                                            {new Date(rec.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' })}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3 font-mono text-slate-700 dark:text-slate-300">
-                                                        {formatTime(rec.check_in_at)}
+                                                        <div className="min-w-30 text-center">{formatTime(rec.check_in_at)}</div>
                                                     </td>
                                                     <td className="py-3 font-mono text-slate-700 dark:text-slate-300">
-                                                        {rec.check_out_at ? formatTime(rec.check_out_at) : (
-                                                            <span className="text-amber-600 dark:text-amber-400 text-[11px] font-medium">Pending</span>
-                                                        )}
+                                                        <div className="min-w-30 text-center">
+                                                            {rec.check_out_at ? (
+                                                                formatTime(rec.check_out_at)
+                                                            ) : (
+                                                                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                                                    Pending
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3">
-                                                        {rec.late_minutes > 0 ? (
-                                                            <span className="text-amber-600 dark:text-amber-400 font-semibold">+{rec.late_minutes}m</span>
-                                                        ) : (
-                                                            <span className="text-slate-400 dark:text-slate-500">—</span>
-                                                        )}
+                                                        <div className="min-w-30 text-center">
+                                                            {rec.late_minutes > 0 ? (
+                                                                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                                                    +{rec.late_minutes}m
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3">
-                                                        {rec.early_leave_minutes > 0 ? (
-                                                            <span className="text-orange-600 dark:text-orange-400 font-semibold">-{rec.early_leave_minutes}m</span>
-                                                        ) : (
-                                                            <span className="text-slate-400 dark:text-slate-500">—</span>
-                                                        )}
+                                                        <div className="min-w-30 text-center">
+                                                            {rec.early_leave_minutes > 0 ? (
+                                                                <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                                                    -{rec.early_leave_minutes}m
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3">
-                                                        {rec.overtime_minutes > 0 ? (
-                                                            <span className="text-violet-600 dark:text-violet-400 font-semibold">+{rec.overtime_minutes}m</span>
-                                                        ) : (
-                                                            <span className="text-slate-400 dark:text-slate-500">—</span>
-                                                        )}
+                                                        <div className="min-w-30 text-center">
+                                                            {rec.overtime_minutes > 0 ? (
+                                                                <span className="font-semibold text-violet-600 dark:text-violet-400">
+                                                                    +{rec.overtime_minutes}m
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                            )}
+                                                        </div>
                                                     </td>
-                                                    <td className="py-3 text-right pr-4">
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                                                    <td className="py-3 pr-4 text-right">
+                                                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/60 dark:text-emerald-400">
                                                             Recorded
                                                         </span>
                                                     </td>
@@ -592,8 +621,8 @@ export default function EmployeeAttendancePortal({
             </main>
 
             {/* Footer */}
-            <footer className="relative z-10 border-t border-slate-200 dark:border-slate-800/80 px-4 py-5 text-center text-xs text-slate-500">
-                &copy; {new Date().getFullYear()} {brandname}. Connected from {clientIp}. Shared Hosting & Zero VPS Setup.
+            <footer className="relative z-10 border-t border-slate-200 px-4 py-5 text-center text-xs text-slate-500 dark:border-slate-800/80">
+                &copy; {new Date().getFullYear()} {brandname}.
             </footer>
         </div>
     );

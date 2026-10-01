@@ -106,14 +106,13 @@ export default function AdminLayout({ children, title }: Props) {
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                    <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/20">
+                    <div className="w-36 h-auto">
                         {settings?.logo ? (
-                            <img src={`/storage/${settings.logo}`} alt="Logo" className="h-6 w-6 object-contain" />
+                            <img src={`/storage/${settings.logo}`} alt="Logo" className="w-full h-auto object-contain dark:invert dark:brightness-0" />
                         ) : (
                             <Shield className="h-5 w-5" />
                         )}
                     </div>
-                    <span className="font-bold text-base tracking-tight">{brandname}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <ThemeToggle variant="dropdown" />
@@ -134,22 +133,14 @@ export default function AdminLayout({ children, title }: Props) {
                     }`}
                 >
                     {/* Brand header */}
-                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/25">
+                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between max-h-[65px]">
+                        <div className="grid justify-center gap-3">
+                            <div className="w-full rounded-xl lg:p-12">
                                 {settings?.logo ? (
-                                    <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-7 object-contain" />
+                                    <img src={`/storage/${settings.logo}`} alt="Logo" className="w-full h-auto object-contain dark:invert dark:brightness-0" />
                                 ) : (
                                     <Shield className="h-5 w-5" />
                                 )}
-                            </div>
-                            <div>
-                                <h1 className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-tight">
-                                    {brandname}
-                                </h1>
-                                <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
-                                    Administration
-                                </span>
                             </div>
                         </div>
                         <button
