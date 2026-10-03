@@ -52,4 +52,75 @@ class WebsiteSetting extends Model
 
         return $setting;
     }
+
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            static::generateManifest();
+        });
+    }
+
+    /**
+     * Generate or update the Web App Manifest (manifest.json) using dynamic settings.
+     */
+    public static function generateManifest(): void
+    {
+        try {
+            $settings = static::current();
+            $brandname = !empty($settings->brandname) ? $settings->brandname : config('app.name', 'AttendEase Pro');
+
+            $faviconUrl = !empty($settings->favicon)
+                ? asset('storage/' . $settings->favicon)
+                : asset('favicon.ico');
+
+            $faviconExt = !empty($settings->favicon)
+                ? strtolower(pathinfo($settings->favicon, PATHINFO_EXTENSION))
+                : 'ico';
+
+            $faviconMime = match ($faviconExt) {
+                'png' => 'image/png',
+                'svg' => 'image/svg+xml',
+                'jpg', 'jpeg' => 'image/jpeg',
+                'webp' => 'image/webp',
+                'gif' => 'image/gif',
+                default => 'image/x-icon',
+            };
+
+            $manifest = [
+                'name' => $brandname,
+                'short_name' => $brandname,
+                'description' => "Real-time Attendance and Employee Management Portal",
+                'start_url' => '/',
+                'scope' => '/',
+                'display' => 'standalone',
+                'orientation' => 'portrait',
+                'background_color' => '#ffffff',
+                'theme_color' => '#4f46e5',
+                'icons' => [
+                    [
+                        'src' => $faviconUrl,
+                        'sizes' => '192x192',
+                        'type' => $faviconMime,
+                        'purpose' => 'any maskable',
+                    ],
+                    [
+                        'src' => $faviconUrl,
+                        'sizes' => '512x512',
+                        'type' => $faviconMime,
+                        'purpose' => 'any maskable',
+                    ],
+                    [
+                        'src' => $faviconUrl,
+                        'sizes' => 'any',
+                        'type' => $faviconMime,
+                        'purpose' => 'any maskable',
+                    ],
+                ],
+            ];
+
+            @file_put_contents(public_path('manifest.json'), json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        } catch (\Throwable $e) {
+            // Silently ignore during build/testing
+        }
+    }
 }

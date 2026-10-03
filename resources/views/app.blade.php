@@ -24,6 +24,12 @@
         @endphp
         <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}" id="dynamic-favicon">
         <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+        <link rel="manifest" href="{{ url('/manifest.json') }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="{{ $settings->brandname ?? config('app.name', 'AttendEase Pro') }}">
+        <meta name="theme-color" content="#4f46e5">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
@@ -47,6 +53,12 @@
                     }
                 } catch (e) {}
             })();
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+            }
         </script>
     </head>
     <body class="font-sans antialiased">

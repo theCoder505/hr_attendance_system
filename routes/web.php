@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Employee\AttendancePageController;
 use App\Http\Controllers\Employee\VerificationController;
+use App\Models\WebsiteSetting;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,64 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('attendance.index');
 })->name('home');
+
+// Dynamic Web App Manifest (PWA standalone browser support with dynamic favicon and brandname)
+Route::get('/manifest.json', function () {
+    $settings = WebsiteSetting::current();
+    $brandname = ! empty($settings->brandname) ? $settings->brandname : config('app.name', 'AttendEase Pro');
+
+    $faviconUrl = ! empty($settings->favicon)
+        ? asset('storage/'.$settings->favicon)
+        : asset('favicon.ico');
+
+    $faviconExt = ! empty($settings->favicon)
+        ? strtolower(pathinfo($settings->favicon, PATHINFO_EXTENSION))
+        : 'ico';
+
+    $faviconMime = match ($faviconExt) {
+        'png' => 'image/png',
+        'svg' => 'image/svg+xml',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        default => 'image/x-icon',
+    };
+
+    return response()->json([
+        'name' => $brandname,
+        'short_name' => $brandname,
+        'description' => 'Real-time Attendance and Employee Management Portal',
+        'start_url' => '/',
+        'scope' => '/',
+        'display' => 'standalone',
+        'orientation' => 'portrait',
+        'background_color' => '#ffffff',
+        'theme_color' => '#4f46e5',
+        'icons' => [
+            [
+                'src' => $faviconUrl,
+                'sizes' => '192x192',
+                'type' => $faviconMime,
+                'purpose' => 'any maskable',
+            ],
+            [
+                'src' => $faviconUrl,
+                'sizes' => '512x512',
+                'type' => $faviconMime,
+                'purpose' => 'any maskable',
+            ],
+            [
+                'src' => $faviconUrl,
+                'sizes' => 'any',
+                'type' => $faviconMime,
+                'purpose' => 'any maskable',
+            ],
+        ],
+    ], 200, [
+        'Content-Type' => 'application/manifest+json; charset=utf-8',
+        'Cache-Control' => 'no-cache, private',
+    ]);
+})->name('manifest.json');
 
 // Alias for standard Laravel 'login' route name
 Route::get('/login', function () {
@@ -95,15 +154,12 @@ Route::prefix('administration-control')->name('admin.')->group(function () {
     });
 });
 
-
 Route::get('/clear', function () {
     Artisan::call('cache:clear');
     Artisan::call('config:clear');
     Artisan::call('config:cache');
     Artisan::call('view:clear');
     Artisan::call('storage:link');
-    
-    return "Cleared!";
+
+    return 'Cleared!';
 });
-
-

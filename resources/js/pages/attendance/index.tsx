@@ -366,7 +366,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
 
                         {/* Action Hero Section: Check In / Check Out */}
                         <div className="items-center justify-between gap-6 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-lg backdrop-blur-xl sm:p-7 md:flex-row dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-xl">
-                            <div className="mx-auto max-w-xl space-y-6">
+                            <div className="mx-auto max-w-xl text-center space-y-6">
                                 {/* State status badge */}
                                 {canCheckIn && (
                                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
