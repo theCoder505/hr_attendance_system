@@ -340,7 +340,7 @@ export default function AdminDashboard({
                 </div>
 
                 {/* Selected Date Attendance Records Table (7 cols) */}
-                <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-12 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-12 mb-[100px] dark:border-slate-800 dark:bg-slate-900">
                     <div className="mb-5 flex flex-col justify-between gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center dark:border-slate-800">
                         <div>
                             <div className="flex items-center gap-2">

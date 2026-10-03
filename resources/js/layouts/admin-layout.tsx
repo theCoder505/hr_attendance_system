@@ -20,6 +20,7 @@ import {
 import { showSuccess, showError, showWarning, showToast } from '@/lib/swal';
 import Swal from 'sweetalert2';
 import ThemeToggle from '@/components/theme-toggle';
+import AdminBottomNav from '@/components/admin-bottom-nav';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +31,6 @@ interface Props {
 
 export default function AdminLayout({ children, title }: Props) {
     const { auth, flash, settings } = usePage<any>().props;
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('admin_sidebar_minimized') === 'true';
@@ -138,40 +138,50 @@ export default function AdminLayout({ children, title }: Props) {
     return (
         <TooltipProvider delayDuration={150}>
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased">
-                {/* Mobile Header */}
-                <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                {/* Mobile & Tablet Header (Clean app header - no hamburger, navigation is in the bottom bar) */}
+                <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                        <div className="w-36 h-auto">
+                        <Link href="/administration-control/dashboard" className="flex items-center gap-2 overflow-hidden min-w-0">
                             {settings?.logo ? (
-                                <img src={`/storage/${settings.logo}`} alt="Logo" className="w-full h-auto object-contain dark:invert dark:brightness-0" />
+                                <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-auto max-w-[140px] object-contain dark:invert dark:brightness-0" />
                             ) : (
                                 <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
-                                    <Shield className="h-5 w-5 text-indigo-600" />
-                                    <span className="text-sm truncate">{brandname}</span>
+                                    <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30 shrink-0">
+                                        <Shield className="h-4 w-4" />
+                                    </div>
+                                    <span className="text-sm font-bold truncate">{brandname}</span>
                                 </div>
                             )}
-                        </div>
+                        </Link>
                     </div>
                     <div className="flex items-center gap-2">
                         <ThemeToggle variant="dropdown" />
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                            aria-label="Toggle menu"
-                        >
-                            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                        </button>
+                        <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-800">
+                            <div className="h-8 w-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 text-xs shrink-0">
+                                {auth?.admin?.name?.substring(0, 2).toUpperCase() || 'AD'}
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                title="Log Out"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                                aria-label="Log Out"
+                            >
+                                <LogOut className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex-1 flex">
-                    {/* Sidebar Navigation */}
+                    {/* Desktop Sidebar Navigation */}
                     <aside
-                        className={`fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                            } ${isMinimized ? 'lg:w-20' : 'lg:w-64'} w-64`}
+                        className={cn(
+                            "hidden lg:flex fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col transition-all duration-300 ease-in-out",
+                            isMinimized ? "w-20" : "w-64"
+                        )}
                     >
                         {/* Brand header */}
-                        <div className={`p-4 border-b border-slate-200 dark:border-slate-800 flex items-center h-[65px] transition-all duration-300 ${isMinimized ? 'lg:justify-center lg:px-2 justify-between px-5' : 'justify-between px-5'
+                        <div className={`p-4 border-b border-slate-200 dark:border-slate-800 flex items-center h-[65px] transition-all duration-300 ${isMinimized ? 'justify-center px-2' : 'justify-between px-5'
                             }`}>
                             {/* Expanded state on desktop or mobile view */}
                             <div className={cn("flex items-center justify-between w-full min-w-0", isMinimized && "lg:hidden")}>
@@ -214,15 +224,6 @@ export default function AdminLayout({ children, title }: Props) {
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-
-                            {/* Close button for mobile drawer */}
-                            <button
-                                onClick={() => setSidebarOpen(false)}
-                                className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                aria-label="Close sidebar"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
                         </div>
 
                         {/* Nav Items */}
@@ -238,7 +239,6 @@ export default function AdminLayout({ children, title }: Props) {
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        onClick={() => setSidebarOpen(false)}
                                         className={cn(
                                             "flex items-center rounded-lg text-sm font-medium transition-all group",
                                             isMinimized
@@ -373,14 +373,6 @@ export default function AdminLayout({ children, title }: Props) {
                         </div>
                     </aside>
 
-                    {/* Mobile overlay */}
-                    {sidebarOpen && (
-                        <div
-                            onClick={() => setSidebarOpen(false)}
-                            className="fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-                        />
-                    )}
-
                     {/* Main Content Area */}
                     <main className={cn(
                         "flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out",
@@ -412,11 +404,18 @@ export default function AdminLayout({ children, title }: Props) {
                             </div>
                         </header>
 
-                        <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-9xl w-full mx-auto">
+                        <div className="flex-1 p-4 md:p-6 lg:p-8 pb-24 sm:pb-28 lg:pb-8 max-w-9xl w-full mx-auto">
                             {children}
                         </div>
                     </main>
                 </div>
+
+                {/* Mobile & Tablet App Bottom Navigation Menu */}
+                <AdminBottomNav
+                    currentRoute={currentRoute}
+                    auth={auth}
+                    onLogout={handleLogout}
+                />
             </div>
         </TooltipProvider>
     );
