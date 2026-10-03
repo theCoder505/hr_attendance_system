@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Employee\AttendancePageController;
 use App\Http\Controllers\Employee\VerificationController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -93,3 +94,16 @@ Route::prefix('administration-control')->name('admin.')->group(function () {
         Route::post('/settings/credentials', [AdminSettingsController::class, 'updateCredentials'])->name('settings.credentials');
     });
 });
+
+
+Route::get('/clear', function () {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('config:cache');
+    Artisan::call('view:clear');
+    Artisan::call('storage:link');
+    
+    return "Cleared!";
+});
+
+

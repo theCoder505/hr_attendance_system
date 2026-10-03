@@ -63,6 +63,7 @@ class AttendancePageController extends Controller
                 'uid' => $employee->uid,
                 'name' => $employee->name,
                 'role' => $employee->role,
+                'image' => $employee->image,
                 'check_in_time' => $employee->check_in_time,
                 'check_out_time' => $employee->check_out_time,
                 'working_hours' => $employee->working_hours,

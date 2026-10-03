@@ -283,24 +283,24 @@ export default function AdminDashboard({
                                 <button
                                     key={dStr}
                                     onClick={() => handleDateClick(dStr)}
-                                    className={`flex h-14 cursor-pointer flex-col justify-between rounded-xl border p-1.5 text-left transition-all ${
+                                    className={`flex h-14 lg:h-20 cursor-pointer flex-col justify-between rounded-xl border p-1.5 text-left transition-all ${
                                         isSelected
                                             ? 'border-indigo-600 bg-indigo-600 text-white shadow-md ring-2 shadow-indigo-600/25 ring-indigo-600/30'
                                             : isToday
                                               ? 'border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200'
-                                              : 'border-slate-100 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800'
+                                              : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800'
                                     }`}
                                 >
                                     <div className="flex w-full items-center justify-between">
-                                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : ''}`}>{dayNum}</span>
+                                        <span className={`text-xs lg:text-lg font-bold ${isSelected ? 'text-white' : ''}`}>{dayNum}</span>
                                         {isToday && <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'}`} />}
                                     </div>
 
                                     {/* Mini indicators */}
                                     {data.total_present > 0 && (
-                                        <div className="flex items-center gap-1">
+                                        <div className="hidden items-center gap-1 lg:flex">
                                             <span
-                                                className={`rounded px-1 text-[10px] font-semibold ${
+                                                className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${
                                                     isSelected
                                                         ? 'bg-white/20 text-white'
                                                         : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
@@ -310,7 +310,7 @@ export default function AdminDashboard({
                                             </span>
                                             {data.total_late > 0 && (
                                                 <span
-                                                    className={`rounded px-1 text-[10px] font-semibold ${
+                                                    className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${
                                                         isSelected
                                                             ? 'bg-amber-400 text-slate-900'
                                                             : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
@@ -395,88 +395,108 @@ export default function AdminDashboard({
                             <table className="w-full text-left text-xs">
                                 <thead>
                                     <tr className="border-b border-slate-200 font-semibold tracking-wider text-slate-400 uppercase dark:border-slate-800">
-                                        <th className="pb-3 pl-1">Employee</th>
-                                        <th className="pb-3">Check In</th>
-                                        <th className="pb-3">Check Out</th>
-                                        <th className="pb-3">Status Badges</th>
-                                        <th className="pb-3">Type</th>
-                                        <th className="pr-1 pb-3 text-right">Actions</th>
+                                        <th className="pb-3 pl-1">
+                                            <div className="min-w-50 text-left">Employee</div>
+                                        </th>
+                                        <th className="pb-3">
+                                            <div className="min-w-25 text-center">Check In</div>
+                                        </th>
+                                        <th className="pb-3">
+                                            <div className="min-w-25 text-center">Check Out</div>
+                                        </th>
+                                        <th className="pb-3">
+                                            <div className="min-w-25 text-center">Status</div>
+                                        </th>
+                                        <th className="pb-3">
+                                            <div className="min-w-25 text-center">Type</div>
+                                        </th>
+                                        <th className="pr-1 pb-3 text-right">
+                                            <div className="min-w-25 text-right">Actions</div>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {attendances.map((item) => (
                                         <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                             <td className="py-3 pl-1">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                        {item.employee?.image ? (
-                                                            <img
-                                                                src={`/storage/${item.employee.image}`}
-                                                                alt={item.employee?.name}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            item.employee?.name?.substring(0, 2).toUpperCase() || 'EM'
+                                                <div className="min-w-50">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                            {item.employee?.image ? (
+                                                                <img
+                                                                    src={`/storage/${item.employee.image}`}
+                                                                    alt={item.employee?.name}
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                item.employee?.name?.substring(0, 2).toUpperCase() || 'EM'
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-slate-900 dark:text-white">{item.employee?.name}</p>
+                                                            <p className="text-[11px] text-slate-400">
+                                                                {item.employee?.role} &bull; {item.employee?.uid}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
+                                                <div className="min-w-25 text-center">{formatTime(item.check_in_at)}</div>
+                                            </td>
+
+                                            <td className="py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
+                                                <div className="min-w-25 text-center">
+                                                    {item.check_out_at ? (
+                                                        formatTime(item.check_out_at)
+                                                    ) : (
+                                                        <span className="rounded bg-amber-50 px-2 py-0.5 font-sans text-[11px] font-medium text-amber-500 dark:bg-amber-950/40">
+                                                            In Progress
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3">
+                                                <div className="min-w-25 text-center">
+                                                    <div className="flex flex-wrap justify-center gap-1">
+                                                        {item.late_minutes > 0 && (
+                                                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                                Late {item.late_minutes}m
+                                                            </span>
+                                                        )}
+                                                        {item.early_leave_minutes > 0 && (
+                                                            <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+                                                                Early Leave {item.early_leave_minutes}m
+                                                            </span>
+                                                        )}
+                                                        {item.overtime_minutes > 0 && (
+                                                            <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-300">
+                                                                OT {item.overtime_minutes}m
+                                                            </span>
+                                                        )}
+                                                        {item.late_minutes === 0 && item.early_leave_minutes === 0 && item.overtime_minutes === 0 && (
+                                                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                                                On Time
+                                                            </span>
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900 dark:text-white">{item.employee?.name}</p>
-                                                        <p className="text-[11px] text-slate-400">
-                                                            {item.employee?.role} &bull; {item.employee?.uid}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td className="py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
-                                                {formatTime(item.check_in_at)}
-                                            </td>
-
-                                            <td className="py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
-                                                {item.check_out_at ? (
-                                                    formatTime(item.check_out_at)
-                                                ) : (
-                                                    <span className="rounded bg-amber-50 px-2 py-0.5 font-sans text-[11px] font-medium text-amber-500 dark:bg-amber-950/40">
-                                                        In Progress
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-3">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {item.late_minutes > 0 && (
-                                                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                            Late {item.late_minutes}m
-                                                        </span>
-                                                    )}
-                                                    {item.early_leave_minutes > 0 && (
-                                                        <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                                                            Early Leave {item.early_leave_minutes}m
-                                                        </span>
-                                                    )}
-                                                    {item.overtime_minutes > 0 && (
-                                                        <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-300">
-                                                            OT {item.overtime_minutes}m
-                                                        </span>
-                                                    )}
-                                                    {item.late_minutes === 0 && item.early_leave_minutes === 0 && item.overtime_minutes === 0 && (
-                                                        <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                                            On Time
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </td>
 
                                             <td className="py-3">
-                                                {item.is_manual ? (
-                                                    <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                        Manual
-                                                    </span>
-                                                ) : (
-                                                    <span className="rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
-                                                        Device
-                                                    </span>
-                                                )}
+                                                <div className="min-w-25 text-center">
+                                                    {item.is_manual ? (
+                                                        <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                            Manual
+                                                        </span>
+                                                    ) : (
+                                                        <span className="rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                                                            Device
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td className="py-3 pr-1 text-right">

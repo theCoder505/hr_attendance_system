@@ -311,8 +311,24 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                         <div className="flex flex-col items-center justify-between gap-6 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-lg backdrop-blur-xl sm:p-7 md:flex-row dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-xl">
                             {/* Employee info */}
                             <div className="flex w-full items-center gap-4 text-left md:w-auto">
-                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-xl font-bold text-indigo-600 shadow-inner dark:border-indigo-500/30 dark:bg-indigo-600/20 dark:text-indigo-400">
-                                    {employee.name.substring(0, 2).toUpperCase()}
+                                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-indigo-200 bg-indigo-50 text-xl font-bold text-indigo-600 shadow-inner dark:border-indigo-500/30 dark:bg-indigo-600/20 dark:text-indigo-400">
+                                    {employee.image ? (
+                                        <img
+                                            src={employee.image.startsWith('http') || employee.image.startsWith('/') ? employee.image : `/storage/${employee.image}`}
+                                            alt={employee.name}
+                                            className="h-full w-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                const fallback = e.currentTarget.nextElementSibling;
+                                                if (fallback) {
+                                                    (fallback as HTMLElement).classList.remove('hidden');
+                                                }
+                                            }}
+                                        />
+                                    ) : null}
+                                    <span className={employee.image ? 'hidden' : ''}>
+                                        {employee.name.substring(0, 2).toUpperCase()}
+                                    </span>
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -349,7 +365,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                         </div>
 
                         {/* Action Hero Section: Check In / Check Out */}
-                        <div className="relative overflow-hidden rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-violet-50/60 p-6 text-center shadow-xl sm:p-10 dark:border-indigo-900/40 dark:from-slate-900 dark:to-indigo-950/60 dark:shadow-2xl">
+                        <div className="items-center justify-between gap-6 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-lg backdrop-blur-xl sm:p-7 md:flex-row dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-xl">
                             <div className="mx-auto max-w-xl space-y-6">
                                 {/* State status badge */}
                                 {canCheckIn && (

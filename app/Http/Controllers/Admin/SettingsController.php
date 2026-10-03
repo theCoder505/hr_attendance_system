@@ -54,6 +54,8 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($settings->logo);
             }
             $data['logo'] = $request->file('logo')->store('settings', 'public');
+        }else{
+            $data['logo'] = $settings->logo;
         }
 
         if ($request->hasFile('favicon')) {
@@ -61,6 +63,8 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($settings->favicon);
             }
             $data['favicon'] = $request->file('favicon')->store('settings', 'public');
+        }else{
+            $data['favicon'] = $settings->favicon;
         }
 
         $settings->update($data);

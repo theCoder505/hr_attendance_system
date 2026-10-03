@@ -87,6 +87,8 @@ class EmployeeController extends Controller
                 Storage::disk('public')->delete($employee->image);
             }
             $data['image'] = $request->file('image')->store('employees/images', 'public');
+        }else{
+            $data['image'] = $employee->image;
         }
 
         if ($request->hasFile('appointment_letter')) {
@@ -94,6 +96,8 @@ class EmployeeController extends Controller
                 Storage::disk('public')->delete($employee->appointment_letter);
             }
             $data['appointment_letter'] = $request->file('appointment_letter')->store('employees/letters', 'public');
+        }else{
+            $data['image'] = $employee->appointment_letter;
         }
 
         $employee->update($data);

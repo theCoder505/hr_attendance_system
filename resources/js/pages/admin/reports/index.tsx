@@ -5,11 +5,7 @@ import {
     FileSpreadsheet,
     Download,
     Search,
-    Calendar,
     Users,
-    Clock,
-    AlertCircle,
-    TrendingUp,
 } from 'lucide-react';
 
 interface Props {
@@ -22,7 +18,7 @@ interface Props {
     allEmployees: any[];
 }
 
-export default function ReportsIndex({ reports, filters, allEmployees }: Props) {
+export default function ReportsIndex({ reports, filters }: Props) {
     const [month, setMonth] = useState(filters.month);
     const [year, setYear] = useState(filters.year);
     const [search, setSearch] = useState(filters.search || '');
@@ -190,12 +186,24 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
-                                <th className="py-3.5 pl-4">Employee</th>
-                                <th className="py-3.5">Days Present</th>
-                                <th className="py-3.5">Late Log</th>
-                                <th className="py-3.5">Early Leave Log</th>
-                                <th className="py-3.5">Overtime Log</th>
-                                <th className="py-3.5 text-right pr-4">Export Employee</th>
+                                <th className="py-3.5 pl-4">
+                                    <div className="min-w-50 text-left">Employee</div>
+                                </th>
+                                <th className="py-3.5">
+                                    <div className="min-w-40 text-center">Days Present</div>
+                                </th>
+                                <th className="py-3.5">
+                                    <div className="min-w-40 text-center">Late Log</div>
+                                </th>
+                                <th className="py-3.5">
+                                    <div className="min-w-40 text-center">Early Leave Log</div>
+                                </th>
+                                <th className="py-3.5">
+                                    <div className="min-w-40 text-center">Overtime Log</div>
+                                </th>
+                                <th className="py-3.5 text-right pr-4">
+                                    <div className="min-w-25 text-right">Export Employee</div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -210,7 +218,7 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                                 reports.map((emp) => (
                                     <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                                         <td className="py-3.5 pl-4">
-                                            <div>
+                                            <div className='min-w-50 text-left'>
                                                 <p className="font-semibold text-slate-900 dark:text-white text-sm">
                                                     {emp.name}
                                                 </p>
@@ -221,13 +229,16 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                                         </td>
 
                                         <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
                                             <span className="font-bold text-slate-900 dark:text-white text-sm">
                                                 {emp.present_days}
                                             </span>
                                             <span className="text-slate-400 text-[11px] ml-1">days</span>
+                                            </div>
                                         </td>
 
                                         <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
                                             {emp.late_count > 0 ? (
                                                 <div>
                                                     <span className="font-semibold text-amber-600 dark:text-amber-400">
@@ -240,9 +251,11 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                                             ) : (
                                                 <span className="text-slate-400">0</span>
                                             )}
+                                            </div>
                                         </td>
 
                                         <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
                                             {emp.early_leave_count > 0 ? (
                                                 <div>
                                                     <span className="font-semibold text-orange-600 dark:text-orange-400">
@@ -255,9 +268,11 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                                             ) : (
                                                 <span className="text-slate-400">0</span>
                                             )}
+                                            </div>
                                         </td>
 
                                         <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
                                             {emp.overtime_count > 0 ? (
                                                 <div>
                                                     <span className="font-semibold text-violet-600 dark:text-violet-400">
@@ -270,6 +285,7 @@ export default function ReportsIndex({ reports, filters, allEmployees }: Props) 
                                             ) : (
                                                 <span className="text-slate-400">0</span>
                                             )}
+                                            </div>
                                         </td>
 
                                         <td className="py-3.5 text-right pr-4">

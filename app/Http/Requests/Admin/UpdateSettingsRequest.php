@@ -21,7 +21,7 @@ class UpdateSettingsRequest extends FormRequest
             'missing_checkout_early_leave_minutes' => ['required', 'integer', 'min:0', 'max:720'],
             'admin_login_2fa_enabled' => ['nullable', 'boolean'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
-            'favicon' => ['nullable', 'image', 'mimes:ico,png,jpg,svg', 'max:1024'],
+            'favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,svg,webp', 'max:1024'],
         ];
     }
 }
