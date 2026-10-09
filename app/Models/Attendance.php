@@ -13,6 +13,7 @@ class Attendance extends Model
     protected $table = 'attendances';
 
     protected $fillable = [
+        'outlet_id',
         'employee_id',
         'date',
         'check_in_at',
@@ -39,5 +40,10 @@ class Attendance extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function outlet(): BelongsTo
+    {
+        return $this->belongsTo(Outlet::class, 'outlet_id');
     }
 }

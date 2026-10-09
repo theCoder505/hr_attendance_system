@@ -14,6 +14,7 @@ class UpdateEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'outlet_id' => ['required', 'exists:outlets,id'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'role' => ['required', 'string', 'max:100'],

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController as AdminEmployeeController;
+use App\Http\Controllers\Admin\OutletController as AdminOutletController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Employee\AttendancePageController;
@@ -98,7 +99,7 @@ Route::get('/verify/{token}', [VerificationController::class, 'verify'])->name('
 Route::get('/attendance', [AttendancePageController::class, 'index'])->name('attendance.index');
 
 // Protected attendance action endpoints (Office IP + Registered Device Token)
-Route::prefix('attendance')->middleware(['office.network', 'verify.device'])->group(function () {
+Route::prefix('attendance')->middleware(['verify.device', 'office.network'])->group(function () {
     Route::get('/status', [AttendancePageController::class, 'status'])->name('attendance.status');
     Route::post('/check-in', [AttendancePageController::class, 'checkIn'])->name('attendance.check-in');
     Route::post('/check-out', [AttendancePageController::class, 'checkOut'])->name('attendance.check-out');
@@ -151,6 +152,11 @@ Route::prefix('administration-control')->name('admin.')->group(function () {
         Route::post('/settings/profile', [AdminSettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::post('/settings/credentials/otp', [AdminSettingsController::class, 'requestCredentialsOtp'])->name('settings.credentials.otp');
         Route::post('/settings/credentials', [AdminSettingsController::class, 'updateCredentials'])->name('settings.credentials');
+
+        // Outlets Management (Max 5)
+        Route::post('/outlets', [AdminOutletController::class, 'store'])->name('outlets.store');
+        Route::put('/outlets/{outlet}', [AdminOutletController::class, 'update'])->name('outlets.update');
+        Route::delete('/outlets/{outlet}', [AdminOutletController::class, 'destroy'])->name('outlets.destroy');
     });
 });
 

@@ -5,38 +5,54 @@ import {
     FileSpreadsheet,
     Download,
     Search,
+    Store,
     Users,
 } from 'lucide-react';
 
+interface OutletItem {
+    id: number;
+    uid: string;
+    name: string;
+    wifi_ip: string;
+    employees_count?: number;
+}
+
 interface Props {
     reports: any[];
+    outlets?: OutletItem[];
+    activeOutletId?: string | number;
     filters: {
         month: number;
         year: number;
         search: string;
+        outlet_id?: string | number;
     };
     allEmployees: any[];
 }
 
-export default function ReportsIndex({ reports, filters }: Props) {
+export default function ReportsIndex({ reports, outlets = [], activeOutletId = 'all', filters }: Props) {
     const [month, setMonth] = useState(filters.month);
     const [year, setYear] = useState(filters.year);
     const [search, setSearch] = useState(filters.search || '');
 
-    const handleFilterChange = (m = month, y = year, s = search) => {
+    const handleFilterChange = (m = month, y = year, s = search, outletVal = activeOutletId) => {
         router.get(
             '/administration-control/reports',
-            { month: m, year: y, search: s },
+            { month: m, year: y, search: s, outlet_id: outletVal },
             { preserveState: true }
         );
     };
 
     const handleExportAll = () => {
-        window.location.href = '/administration-control/reports/export';
+        const url = activeOutletId && activeOutletId !== 'all'
+            ? `/administration-control/reports/export?outlet_id=${activeOutletId}`
+            : '/administration-control/reports/export';
+        window.location.href = url;
     };
 
     const handleExportEmployee = (empId: number) => {
-        window.location.href = `/administration-control/reports/export?employee_id=${empId}`;
+        const outletParam = activeOutletId && activeOutletId !== 'all' ? `&outlet_id=${activeOutletId}` : '';
+        window.location.href = `/administration-control/reports/export?employee_id=${empId}${outletParam}`;
     };
 
     const monthOptions = [
@@ -66,6 +82,38 @@ export default function ReportsIndex({ reports, filters }: Props) {
     return (
         <AdminLayout title="Monthly Attendance Reports">
             <Head title="Monthly Reports - Attendance Management" />
+
+            {/* Outlet Tabs Navigation */}
+            <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+                <button
+                    onClick={() => handleFilterChange(month, year, search, 'all')}
+                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${activeOutletId === 'all' || !activeOutletId
+                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                        }`}
+                >
+                    <Store className="h-4 w-4" />
+                    <span>All Outlets</span>
+                </button>
+
+                {outlets.map((outlet) => {
+                    const isActive = String(activeOutletId) === String(outlet.id);
+                    return (
+                        <button
+                            key={outlet.id}
+                            onClick={() => handleFilterChange(month, year, search, outlet.id)}
+                            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${isActive
+                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <Store className="h-4 w-4" />
+                            <span>{outlet.name}</span>
+                            <span className="font-mono text-[10px] opacity-75">({outlet.wifi_ip})</span>
+                        </button>
+                    );
+                })}
+            </div>
 
             {/* Top Filter Bar */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm mb-6">
@@ -218,73 +266,80 @@ export default function ReportsIndex({ reports, filters }: Props) {
                                 reports.map((emp) => (
                                     <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                                         <td className="py-3.5 pl-4">
-                                            <div className='min-w-50 text-left'>
+                                            <div className="min-w-50 text-left">
                                                 <p className="font-semibold text-slate-900 dark:text-white text-sm">
                                                     {emp.name}
                                                 </p>
-                                                <p className="text-slate-400 text-[11px] font-mono">
-                                                    {emp.uid} &bull; <span className="text-slate-600 dark:text-slate-300 font-sans">{emp.role}</span>
-                                                </p>
-                                            </div>
-                                        </td>
-
-                                        <td className="py-3.5">
-                                            <div className="min-w-40 text-center">
-                                            <span className="font-bold text-slate-900 dark:text-white text-sm">
-                                                {emp.present_days}
-                                            </span>
-                                            <span className="text-slate-400 text-[11px] ml-1">days</span>
-                                            </div>
-                                        </td>
-
-                                        <td className="py-3.5">
-                                            <div className="min-w-40 text-center">
-                                            {emp.late_count > 0 ? (
-                                                <div>
-                                                    <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                                        {emp.late_count} time{emp.late_count > 1 ? 's' : ''}
-                                                    </span>
-                                                    <p className="text-[11px] text-slate-400">
-                                                        Total: {emp.late_total_minutes} min
-                                                    </p>
+                                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                                                    <span>{emp.uid}</span> &bull;{' '}
+                                                    <span className="font-sans font-medium text-slate-600 dark:text-slate-300">{emp.role}</span>
+                                                    {emp.outlet && (
+                                                        <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.2 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                                            <Store className="h-2.5 w-2.5" />
+                                                            {emp.outlet.name}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <span className="text-slate-400">0</span>
-                                            )}
                                             </div>
                                         </td>
 
                                         <td className="py-3.5">
                                             <div className="min-w-40 text-center">
-                                            {emp.early_leave_count > 0 ? (
-                                                <div>
-                                                    <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                                        {emp.early_leave_count} time{emp.early_leave_count > 1 ? 's' : ''}
-                                                    </span>
-                                                    <p className="text-[11px] text-slate-400">
-                                                        Total: {emp.early_leave_total_minutes} min
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-400">0</span>
-                                            )}
+                                                <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                                    {emp.present_days}
+                                                </span>
+                                                <span className="text-slate-400 text-[11px] ml-1">days</span>
                                             </div>
                                         </td>
 
                                         <td className="py-3.5">
                                             <div className="min-w-40 text-center">
-                                            {emp.overtime_count > 0 ? (
-                                                <div>
-                                                    <span className="font-semibold text-violet-600 dark:text-violet-400">
-                                                        {emp.overtime_count} time{emp.overtime_count > 1 ? 's' : ''}
-                                                    </span>
-                                                    <p className="text-[11px] text-slate-400">
-                                                        Total: {emp.overtime_total_minutes} min
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-400">0</span>
-                                            )}
+                                                {emp.late_count > 0 ? (
+                                                    <div>
+                                                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                                            {emp.late_count} time{emp.late_count > 1 ? 's' : ''}
+                                                        </span>
+                                                        <p className="text-[11px] text-slate-400">
+                                                            Total: {emp.late_total_minutes} min
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400">0</span>
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
+                                                {emp.early_leave_count > 0 ? (
+                                                    <div>
+                                                        <span className="font-semibold text-orange-600 dark:text-orange-400">
+                                                            {emp.early_leave_count} time{emp.early_leave_count > 1 ? 's' : ''}
+                                                        </span>
+                                                        <p className="text-[11px] text-slate-400">
+                                                            Total: {emp.early_leave_total_minutes} min
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400">0</span>
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
+                                                {emp.overtime_count > 0 ? (
+                                                    <div>
+                                                        <span className="font-semibold text-violet-600 dark:text-violet-400">
+                                                            {emp.overtime_count} time{emp.overtime_count > 1 ? 's' : ''}
+                                                        </span>
+                                                        <p className="text-[11px] text-slate-400">
+                                                            Total: {emp.overtime_total_minutes} min
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400">0</span>
+                                                )}
                                             </div>
                                         </td>
 

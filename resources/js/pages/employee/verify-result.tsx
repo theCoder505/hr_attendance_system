@@ -8,6 +8,12 @@ interface Props {
     status: 'success' | 'expired' | 'invalid';
     message?: string;
     raw_token?: string;
+    outlet_uid?: string;
+    outlet?: {
+        id: number;
+        uid: string;
+        name: string;
+    } | null;
     employee?: {
         name: string;
         uid: string;
@@ -21,6 +27,8 @@ export default function VerifyResult({
     status,
     message,
     raw_token,
+    outlet_uid,
+    outlet,
     employee,
     expires_at,
     brandname,
@@ -28,9 +36,13 @@ export default function VerifyResult({
     useEffect(() => {
         if (status === 'success' && raw_token) {
             localStorage.setItem('device_token', raw_token);
-            showToast('Device successfully authenticated & registered!', 'success');
+            const uidToStore = outlet_uid || outlet?.uid;
+            if (uidToStore) {
+                localStorage.setItem('outlet_uid', uidToStore);
+            }
+            showToast('Device & Outlet successfully authenticated & registered!', 'success');
         }
-    }, [status, raw_token]);
+    }, [status, raw_token, outlet_uid, outlet]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-50/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
@@ -63,7 +75,7 @@ export default function VerifyResult({
                                 Device Verified Successfully!
                             </h1>
                             <p className="text-xs text-slate-600 dark:text-slate-400 mb-6">
-                                Your device has been securely bound to your employee profile. You can now clock in and out from this browser.
+                                Your device has been securely bound to your employee profile and assigned outlet. You can now clock in and out from this browser.
                             </p>
 
                             {/* Employee Badge Card */}
@@ -81,6 +93,12 @@ export default function VerifyResult({
                                         <span className="text-xs text-slate-500 dark:text-slate-400">Employee ID</span>
                                         <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{employee.uid}</span>
                                     </div>
+                                    {outlet && (
+                                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Outlet</span>
+                                            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{outlet.name}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs text-slate-500 dark:text-slate-400">Binding Session</span>
                                         <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Valid until {expires_at}</span>

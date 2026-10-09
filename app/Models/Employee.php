@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -15,6 +16,7 @@ class Employee extends Model
     protected $table = 'employees';
 
     protected $fillable = [
+        'outlet_id',
         'uid',
         'name',
         'phone',
@@ -64,6 +66,11 @@ class Employee extends Model
                 $employee->check_out_time = $settings->office_closing_time ?? '17:00:00';
             }
 
+            // Assign default outlet if not set
+            if (empty($employee->outlet_id)) {
+                $employee->outlet_id = Outlet::first()?->id;
+            }
+
             // New employees start with status 0 and a verification token valid for 7 days
             if (empty($employee->verification_token)) {
                 $employee->verification_token = Str::random(40);
@@ -83,6 +90,11 @@ class Employee extends Model
 
             $employee->attendances()->delete();
         });
+    }
+
+    public function outlet(): BelongsTo
+    {
+        return $this->belongsTo(Outlet::class, 'outlet_id');
     }
 
     public function attendances(): HasMany

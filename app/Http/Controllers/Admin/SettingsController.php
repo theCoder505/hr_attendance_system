@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\UpdateAdminCredentialsRequest;
 use App\Http\Requests\Admin\UpdateAdminProfileRequest;
 use App\Http\Requests\Admin\UpdateSettingsRequest;
 use App\Mail\AdminOtpMail;
+use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,9 +28,11 @@ class SettingsController extends Controller
     {
         $settings = WebsiteSetting::current();
         $admin = Auth::guard('admin')->user();
+        $outlets = Outlet::withCount(['employees', 'attendances'])->orderBy('id')->get();
 
         return Inertia::render('admin/settings/index', [
             'settings' => $settings,
+            'outlets' => $outlets,
             'admin' => [
                 'name' => $admin->name,
                 'email' => $admin->email,

@@ -1,7 +1,7 @@
 import ThemeToggle from '@/components/theme-toggle';
 import { showConfirm, showError, showSuccess } from '@/lib/swal';
 import { Head } from '@inertiajs/react';
-import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Wifi } from 'lucide-react';
+import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Wifi, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -42,6 +42,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
 
     const fetchStatus = async () => {
         const token = localStorage.getItem('device_token');
+        const outletUid = localStorage.getItem('outlet_uid');
         if (!token) {
             setHasToken(false);
             setUnverifiedMessage('Device not verified, contact admin');
@@ -54,19 +55,27 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         setNetworkError(null);
 
         try {
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                'X-Device-Token': token,
+            };
+            if (outletUid) {
+                headers['X-Outlet-Uid'] = outletUid;
+            }
+
             const res = await fetch('/attendance/status', {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Device-Token': token,
-                },
+                headers,
             });
 
             const data = await res.json();
 
             if (!res.ok) {
                 if (data.code === 'OFFICE_NETWORK_REQUIRED') {
-                    setNetworkError(data.message || 'Please come to the office and use your registered device');
-                    showError('Office Network Required', 'Please connect to the designated office network to access attendance functions.');
+                    setNetworkError(data.message || 'Please connect to the designated outlet network');
+                    showError('Office Network Required', data.message || 'Please connect to the designated outlet WiFi to access attendance functions.');
+                } else if (data.code === 'OUTLET_MISMATCH') {
+                    setNetworkError(data.message);
+                    showError('Outlet Mismatch', data.message);
                 } else {
                     setUnverifiedMessage(data.message || 'Device not verified, contact admin');
                 }
@@ -76,13 +85,16 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
 
             if (data.success) {
                 setEmployee(data.employee);
+                if (data.employee?.outlet?.uid && !localStorage.getItem('outlet_uid')) {
+                    localStorage.setItem('outlet_uid', data.employee.outlet.uid);
+                }
                 setActiveAttendance(data.attendance);
                 setTodayRecord(data.todayRecord);
                 setCanCheckIn(data.canCheckIn);
                 setCanCheckOut(data.canCheckOut);
                 setMonthlyStats(data.monthlyStats);
                 setUnverifiedMessage(null);
-                fetchHistory(token);
+                fetchHistory(token, data.employee?.outlet?.uid || outletUid);
             }
         } catch (err) {
             console.error('Attendance status error:', err);
@@ -91,13 +103,19 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         }
     };
 
-    const fetchHistory = async (token: string) => {
+    const fetchHistory = async (token: string, currentOutletUid?: string | null) => {
         try {
+            const outUid = currentOutletUid || localStorage.getItem('outlet_uid');
+            const headers: Record<string, string> = {
+                Accept: 'application/json',
+                'X-Device-Token': token,
+            };
+            if (outUid) {
+                headers['X-Outlet-Uid'] = outUid;
+            }
+
             const res = await fetch('/attendance/history', {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Device-Token': token,
-                },
+                headers,
             });
             const data = await res.json();
             if (data.success) {
@@ -133,11 +151,15 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         setActionLoading(true);
         try {
             const csrfToken = getCsrfToken();
+            const outletUid = localStorage.getItem('outlet_uid');
             const headers: Record<string, string> = {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-Device-Token': token,
             };
+            if (outletUid) {
+                headers['X-Outlet-Uid'] = outletUid;
+            }
             if (csrfToken) {
                 headers['X-CSRF-TOKEN'] = csrfToken;
                 headers['X-XSRF-TOKEN'] = csrfToken;
@@ -183,11 +205,15 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         setActionLoading(true);
         try {
             const csrfToken = getCsrfToken();
+            const outletUid = localStorage.getItem('outlet_uid');
             const headers: Record<string, string> = {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-Device-Token': token,
             };
+            if (outletUid) {
+                headers['X-Outlet-Uid'] = outletUid;
+            }
             if (csrfToken) {
                 headers['X-CSRF-TOKEN'] = csrfToken;
                 headers['X-XSRF-TOKEN'] = csrfToken;
@@ -340,9 +366,17 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                             Registered Device
                                         </span>
                                     </div>
-                                    <p className="mt-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                        {employee.role} &bull; <span className="font-mono text-slate-500 dark:text-slate-400">{employee.uid}</span>
-                                    </p>
+                                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                        <span>{employee.role}</span>
+                                        <span>&bull;</span>
+                                        <span className="font-mono text-slate-500 dark:text-slate-400">{employee.uid}</span>
+                                        {employee.outlet && (
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 dark:border-sky-800/60 dark:bg-sky-950/70 dark:text-sky-300">
+                                                <Store className="h-3 w-3" />
+                                                {employee.outlet.name}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                                         Assigned Shift:{' '}
                                         <span className="font-mono font-medium text-slate-800 dark:text-slate-200">

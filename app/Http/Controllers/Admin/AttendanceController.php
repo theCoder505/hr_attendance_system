@@ -33,6 +33,7 @@ class AttendanceController extends Controller
         $metrics = $attendanceService->calculateMetrics($employee, $date, $checkInAt, $checkOutAt);
 
         Attendance::create([
+            'outlet_id' => $employee->outlet_id,
             'employee_id' => $employee->id,
             'date' => $date,
             'check_in_at' => $checkInAt,

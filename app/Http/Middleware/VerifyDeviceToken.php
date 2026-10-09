@@ -28,7 +28,7 @@ class VerifyDeviceToken
 
         $hash = hash('sha256', $rawToken);
 
-        $employee = Employee::where('device_token_hash', $hash)->first();
+        $employee = Employee::with('outlet')->where('device_token_hash', $hash)->first();
 
         if (! $employee || $employee->status !== 1) {
             return response()->json([
@@ -43,6 +43,16 @@ class VerifyDeviceToken
                 'success' => false,
                 'code' => 'DEVICE_TOKEN_EXPIRED',
                 'message' => 'Your device session has expired. Please contact admin for re-verification.',
+            ], 403);
+        }
+
+        // Verify Outlet UID if provided by employee browser
+        $outletUid = $request->header('X-Outlet-Uid') ?? $request->input('outlet_uid');
+        if ($employee->outlet && ! empty($outletUid) && $outletUid !== $employee->outlet->uid) {
+            return response()->json([
+                'success' => false,
+                'code' => 'OUTLET_MISMATCH',
+                'message' => "Device outlet mismatch. Assigned to outlet '{$employee->outlet->name}'.",
             ], 403);
         }
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\Outlet;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -14,13 +15,22 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AttendanceExportService
 {
     /**
-     * Export attendance records for all or a specific employee as an XLSX download.
+     * Export attendance records for all, a specific employee, or a specific outlet as an XLSX download.
      */
-    public function exportToExcel(?int $employeeId = null): StreamedResponse
+    public function exportToExcel(?int $employeeId = null, ?int $outletId = null): StreamedResponse
     {
-        $query = Attendance::with('employee')->orderBy('date', 'desc');
+        $query = Attendance::with(['employee', 'outlet'])->orderBy('date', 'desc');
 
         $filename = 'Attendance_Export_All_' . date('Y-m-d_His') . '.xlsx';
+
+        if ($outletId) {
+            $query->where('outlet_id', $outletId);
+            $outlet = Outlet::find($outletId);
+            if ($outlet) {
+                $safeOutlet = preg_replace('/[^A-Za-z0-9_\-]/', '_', $outlet->name);
+                $filename = "Attendance_Export_Outlet_{$safeOutlet}_" . date('Y-m-d_His') . '.xlsx';
+            }
+        }
 
         if ($employeeId) {
             $query->where('employee_id', $employeeId);
@@ -40,17 +50,18 @@ class AttendanceExportService
         // Headers
         $headers = [
             'A1' => 'SL',
-            'B1' => 'Employee UID',
-            'C1' => 'Employee Name',
-            'D1' => 'Role',
-            'E1' => 'Date',
-            'F1' => 'Check In',
-            'G1' => 'Check Out',
-            'H1' => 'Late (Min)',
-            'I1' => 'Early Leave (Min)',
-            'J1' => 'Overtime (Min)',
-            'K1' => 'Entry Type',
-            'L1' => 'Status',
+            'B1' => 'Outlet',
+            'C1' => 'Employee UID',
+            'D1' => 'Employee Name',
+            'E1' => 'Role',
+            'F1' => 'Date',
+            'G1' => 'Check In',
+            'H1' => 'Check Out',
+            'I1' => 'Late (Min)',
+            'J1' => 'Early Leave (Min)',
+            'K1' => 'Overtime (Min)',
+            'L1' => 'Entry Type',
+            'M1' => 'Status',
         ];
 
         foreach ($headers as $cell => $value) {
@@ -73,7 +84,7 @@ class AttendanceExportService
                 'vertical' => Alignment::VERTICAL_CENTER,
             ],
         ];
-        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
         $sheet->getRowDimension(1)->setRowHeight(28);
 
         $row = 2;
@@ -93,18 +104,21 @@ class AttendanceExportService
                 $statusText .= ' (Early Leave)';
             }
 
+            $outletName = $item->outlet?->name ?? ($item->employee?->outlet?->name ?? 'Default');
+
             $sheet->setCellValue("A{$row}", $index + 1);
-            $sheet->setCellValue("B{$row}", $item->employee->uid ?? 'N/A');
-            $sheet->setCellValue("C{$row}", $item->employee->name ?? 'Deleted');
-            $sheet->setCellValue("D{$row}", $item->employee->role ?? 'N/A');
-            $sheet->setCellValue("E{$row}", date('Y-m-d', strtotime($item->date)));
-            $sheet->setCellValue("F{$row}", $checkIn);
-            $sheet->setCellValue("G{$row}", $checkOut);
-            $sheet->setCellValue("H{$row}", (int) $item->late_minutes);
-            $sheet->setCellValue("I{$row}", (int) $item->early_leave_minutes);
-            $sheet->setCellValue("J{$row}", (int) $item->overtime_minutes);
-            $sheet->setCellValue("K{$row}", $item->is_manual ? 'Manual' : 'System');
-            $sheet->setCellValue("L{$row}", $statusText);
+            $sheet->setCellValue("B{$row}", $outletName);
+            $sheet->setCellValue("C{$row}", $item->employee->uid ?? 'N/A');
+            $sheet->setCellValue("D{$row}", $item->employee->name ?? 'Deleted');
+            $sheet->setCellValue("E{$row}", $item->employee->role ?? 'N/A');
+            $sheet->setCellValue("F{$row}", date('Y-m-d', strtotime($item->date)));
+            $sheet->setCellValue("G{$row}", $checkIn);
+            $sheet->setCellValue("H{$row}", $checkOut);
+            $sheet->setCellValue("I{$row}", (int) $item->late_minutes);
+            $sheet->setCellValue("J{$row}", (int) $item->early_leave_minutes);
+            $sheet->setCellValue("K{$row}", (int) $item->overtime_minutes);
+            $sheet->setCellValue("L{$row}", $item->is_manual ? 'Manual' : 'System');
+            $sheet->setCellValue("M{$row}", $statusText);
 
             $totalLate += (int) $item->late_minutes;
             $totalEarly += (int) $item->early_leave_minutes;
@@ -117,10 +131,10 @@ class AttendanceExportService
         // Summary Row
         $summaryRow = $row;
         $sheet->setCellValue("A{$summaryRow}", 'TOTAL');
-        $sheet->mergeCells("A{$summaryRow}:G{$summaryRow}");
-        $sheet->setCellValue("H{$summaryRow}", $totalLate);
-        $sheet->setCellValue("I{$summaryRow}", $totalEarly);
-        $sheet->setCellValue("J{$summaryRow}", $totalOvertime);
+        $sheet->mergeCells("A{$summaryRow}:H{$summaryRow}");
+        $sheet->setCellValue("I{$summaryRow}", $totalLate);
+        $sheet->setCellValue("J{$summaryRow}", $totalEarly);
+        $sheet->setCellValue("K{$summaryRow}", $totalOvertime);
 
         $summaryStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => '0F172A']],
@@ -132,13 +146,13 @@ class AttendanceExportService
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
             ],
         ];
-        $sheet->getStyle("A{$summaryRow}:L{$summaryRow}")->applyFromArray($summaryStyle);
+        $sheet->getStyle("A{$summaryRow}:M{$summaryRow}")->applyFromArray($summaryStyle);
 
         // Apply borders and auto column width
         $lastRow = $summaryRow;
-        $sheet->getStyle("A1:L{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
+        $sheet->getStyle("A1:M{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
 
-        foreach (range('A', 'L') as $col) {
+        foreach (range('A', 'M') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

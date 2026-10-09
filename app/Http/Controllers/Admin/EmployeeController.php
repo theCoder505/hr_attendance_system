@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEmployeeRequest;
 use App\Http\Requests\Admin\UpdateEmployeeRequest;
 use App\Models\Employee;
+use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,8 +23,9 @@ class EmployeeController extends Controller
     {
         $search = $request->query('search');
         $status = $request->query('status');
+        $outletId = $request->query('outlet_id');
 
-        $query = Employee::withCount('attendances')->orderBy('created_at', 'desc');
+        $query = Employee::with('outlet')->withCount('attendances')->orderBy('created_at', 'desc');
 
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {
@@ -38,14 +40,21 @@ class EmployeeController extends Controller
             $query->where('status', (int) $status);
         }
 
+        if (! empty($outletId) && $outletId !== 'all') {
+            $query->where('outlet_id', (int) $outletId);
+        }
+
         $employees = $query->paginate(15)->withQueryString();
         $settings = WebsiteSetting::current();
+        $outlets = Outlet::withCount('employees')->orderBy('name')->get();
 
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
+            'outlets' => $outlets,
             'filters' => [
                 'search' => $search ?? '',
                 'status' => $status ?? '',
+                'outlet_id' => $outletId ?? '',
             ],
             'defaultTimes' => [
                 'check_in_time' => $settings->office_starting_time ?? '09:00:00',
@@ -87,7 +96,7 @@ class EmployeeController extends Controller
                 Storage::disk('public')->delete($employee->image);
             }
             $data['image'] = $request->file('image')->store('employees/images', 'public');
-        }else{
+        } else {
             $data['image'] = $employee->image;
         }
 
@@ -96,8 +105,8 @@ class EmployeeController extends Controller
                 Storage::disk('public')->delete($employee->appointment_letter);
             }
             $data['appointment_letter'] = $request->file('appointment_letter')->store('employees/letters', 'public');
-        }else{
-            $data['image'] = $employee->appointment_letter;
+        } else {
+            $data['appointment_letter'] = $employee->appointment_letter;
         }
 
         $employee->update($data);

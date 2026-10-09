@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ use Inertia\Response;
 class DashboardController extends Controller
 {
     /**
-     * Display the Admin Dashboard with Calendar & Attendance details for selected date.
+     * Display the Admin Dashboard with Calendar & Attendance details for selected date and outlet tab.
      */
     public function index(Request $request): Response
     {
@@ -23,17 +24,26 @@ class DashboardController extends Controller
 
         $month = (int) $request->query('month', $carbonDate->month);
         $year = (int) $request->query('year', $carbonDate->year);
+        $activeOutletId = $request->query('outlet_id', 'all');
 
-        // Fetch all active employees
-        $allEmployees = Employee::orderBy('name')->get();
+        $outlets = Outlet::withCount('employees')->orderBy('name')->get();
+
+        // Query employees based on active outlet tab
+        $employeeQuery = Employee::with('outlet')->orderBy('name');
+        if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
+            $employeeQuery->where('outlet_id', (int) $activeOutletId);
+        }
+        $allEmployees = $employeeQuery->get();
         $totalEmployeesCount = $allEmployees->where('status', 1)->count();
 
-        // Attendances for the selected date
-        $attendances = Attendance::with('employee')
-            ->where('date', $selectedDate)
-            ->get();
+        // Attendances for the selected date (filtered by outlet if selected)
+        $attendanceQuery = Attendance::with(['employee', 'outlet'])->where('date', $selectedDate);
+        if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
+            $attendanceQuery->where('outlet_id', (int) $activeOutletId);
+        }
+        $attendances = $attendanceQuery->get();
 
-        // Calculate metrics for selected date
+        // Calculate metrics for selected date and active outlet tab
         $presentCount = $attendances->count();
         $lateCount = $attendances->where('late_minutes', '>', 0)->count();
         $earlyLeaveCount = $attendances->where('early_leave_minutes', '>', 0)->count();
@@ -50,11 +60,14 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        $monthlyAttendances = Attendance::whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-            ->get()
-            ->groupBy(function ($item) {
-                return Carbon::parse($item->date)->toDateString();
-            });
+        $monthlyAttendancesQuery = Attendance::whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+        if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
+            $monthlyAttendancesQuery->where('outlet_id', (int) $activeOutletId);
+        }
+
+        $monthlyAttendances = $monthlyAttendancesQuery->get()->groupBy(function ($item) {
+            return Carbon::parse($item->date)->toDateString();
+        });
 
         $calendarDays = [];
         $cursor = $startOfMonth->copy();
@@ -78,6 +91,8 @@ class DashboardController extends Controller
             'selectedDate' => $selectedDate,
             'currentMonth' => $month,
             'currentYear' => $year,
+            'outlets' => $outlets,
+            'activeOutletId' => $activeOutletId,
             'metrics' => [
                 'total_employees' => $totalEmployeesCount,
                 'present' => $presentCount,

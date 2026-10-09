@@ -3,8 +3,16 @@ import ImageUploadPreview from '@/components/image-upload-preview';
 import AdminLayout from '@/layouts/admin-layout';
 import { showConfirm, showError, showToast } from '@/lib/swal';
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Clock, Copy, Edit3, Eye, FileText, RefreshCw, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { CheckCircle2, Clock, Copy, Edit3, Eye, FileText, RefreshCw, Search, Store, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useState } from 'react';
+
+interface OutletItem {
+    id: number;
+    uid: string;
+    name: string;
+    wifi_ip: string;
+    employees_count?: number;
+}
 
 interface Props {
     employees: {
@@ -14,9 +22,11 @@ interface Props {
         current_page: number;
         last_page: number;
     };
+    outlets: OutletItem[];
     filters: {
         search: string;
         status: string;
+        outlet_id?: string;
     };
     defaultTimes: {
         check_in_time: string;
@@ -25,7 +35,7 @@ interface Props {
     appUrl: string;
 }
 
-export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl }: Props) {
+export default function EmployeeIndex({ employees, outlets = [], filters, defaultTimes, appUrl }: Props) {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -33,6 +43,7 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
 
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
+    const [outletFilter, setOutletFilter] = useState(filters.outlet_id || '');
 
     // Form for creating new employee
     const createForm = useForm({
@@ -40,6 +51,7 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
         phone: '',
         role: '',
         work_desc: '',
+        outlet_id: outlets.length > 0 ? String(outlets[0].id) : '',
         salary: '6000',
         working_hours: '8.00',
         check_in_time: defaultTimes.check_in_time || '09:00',
@@ -55,6 +67,7 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
         phone: '',
         role: '',
         work_desc: '',
+        outlet_id: '',
         salary: '',
         working_hours: '',
         check_in_time: '',
@@ -65,8 +78,12 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
     });
 
     // Search & Filter
-    const handleFilter = (searchVal = searchTerm, statusVal = statusFilter) => {
-        router.get('/administration-control/employees', { search: searchVal, status: statusVal }, { preserveState: true });
+    const handleFilter = (searchVal = searchTerm, statusVal = statusFilter, outletVal = outletFilter) => {
+        router.get(
+            '/administration-control/employees',
+            { search: searchVal, status: statusVal, outlet_id: outletVal },
+            { preserveState: true }
+        );
     };
 
     // Open Edit Modal
@@ -77,6 +94,7 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
             phone: emp.phone,
             role: emp.role,
             work_desc: emp.work_desc || '',
+            outlet_id: String(emp.outlet_id || (outlets.length > 0 ? outlets[0].id : '')),
             salary: String(emp.salary),
             working_hours: String(emp.working_hours),
             check_in_time: emp.check_in_time.substring(0, 5),
@@ -162,7 +180,7 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
 
             {/* Top Toolbar */}
             <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex max-w-lg flex-1 items-center gap-3">
+                <div className="flex max-w-xl flex-1 items-center gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1">
                         <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -172,18 +190,35 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                             value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
-                                handleFilter(e.target.value, statusFilter);
+                                handleFilter(e.target.value, statusFilter, outletFilter);
                             }}
                             className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-xs text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                         />
                     </div>
+
+                    {/* Outlet Filter */}
+                    <select
+                        value={outletFilter}
+                        onChange={(e) => {
+                            setOutletFilter(e.target.value);
+                            handleFilter(searchTerm, statusFilter, e.target.value);
+                        }}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                    >
+                        <option value="">All Outlets</option>
+                        {outlets.map((o) => (
+                            <option key={o.id} value={o.id}>
+                                {o.name}
+                            </option>
+                        ))}
+                    </select>
 
                     {/* Status Filter */}
                     <select
                         value={statusFilter}
                         onChange={(e) => {
                             setStatusFilter(e.target.value);
-                            handleFilter(searchTerm, e.target.value);
+                            handleFilter(searchTerm, e.target.value, outletFilter);
                         }}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                     >
@@ -251,10 +286,16 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-semibold text-slate-900 dark:text-white">{emp.name}</p>
-                                                    <p className="font-mono text-[11px] text-slate-400">
-                                                        {emp.uid} &bull;{' '}
+                                                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                                                        <span>{emp.uid}</span> &bull;{' '}
                                                         <span className="font-sans font-medium text-slate-600 dark:text-slate-300">{emp.role}</span>
-                                                    </p>
+                                                        {emp.outlet && (
+                                                            <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                                                <Store className="h-2.5 w-2.5" />
+                                                                {emp.outlet.name}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -460,6 +501,27 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                                 </div>
 
                                 <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                    <select
+                                        required
+                                        value={createForm.data.outlet_id}
+                                        onChange={(e) => createForm.setData('outlet_id', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                                    >
+                                        {outlets.length === 0 ? (
+                                            <option value="">No outlets available - create one first</option>
+                                        ) : (
+                                            outlets.map((o) => (
+                                                <option key={o.id} value={o.id}>
+                                                    {o.name} ({o.wifi_ip})
+                                                </option>
+                                            ))
+                                        )}
+                                    </select>
+                                    {createForm.errors.outlet_id && <p className="mt-1 text-xs text-rose-500">{createForm.errors.outlet_id}</p>}
+                                </div>
+
+                                <div>
                                     <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                                         Monthly Salary ($) *
                                     </label>
@@ -637,6 +699,24 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                                         onChange={(e) => editForm.setData('role', e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                                     />
+                                    {editForm.errors.role && <p className="mt-1 text-xs text-rose-500">{editForm.errors.role}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                    <select
+                                        required
+                                        value={editForm.data.outlet_id}
+                                        onChange={(e) => editForm.setData('outlet_id', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                                    >
+                                        {outlets.map((o) => (
+                                            <option key={o.id} value={o.id}>
+                                                {o.name} ({o.wifi_ip})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {editForm.errors.outlet_id && <p className="mt-1 text-xs text-rose-500">{editForm.errors.outlet_id}</p>}
                                 </div>
 
                                 <div>
@@ -772,6 +852,19 @@ export default function EmployeeIndex({ employees, filters, defaultTimes, appUrl
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-xs dark:bg-slate-800/50">
+                                <div>
+                                    <span className="mb-0.5 block text-slate-400">Assigned Outlet:</span>
+                                    <span className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400">
+                                        <Store className="h-3 w-3" />
+                                        {selectedEmployee.outlet?.name || 'Main Office'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="mb-0.5 block text-slate-400">Outlet WiFi IP:</span>
+                                    <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                                        {selectedEmployee.outlet?.wifi_ip || 'N/A'}
+                                    </span>
+                                </div>
                                 <div>
                                     <span className="mb-0.5 block text-slate-400">Phone:</span>
                                     <span className="font-semibold text-slate-900 dark:text-white">{selectedEmployee.phone}</span>

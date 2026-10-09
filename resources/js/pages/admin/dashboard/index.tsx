@@ -10,6 +10,7 @@ import {
     Clock,
     Edit2,
     Plus,
+    Store,
     Trash2,
     TrendingUp,
     UserCheck,
@@ -18,10 +19,20 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+interface OutletItem {
+    id: number;
+    uid: string;
+    name: string;
+    wifi_ip: string;
+    employees_count?: number;
+}
+
 interface Props {
     selectedDate: string;
     currentMonth: number;
     currentYear: number;
+    activeOutletId?: string | number;
+    outlets?: OutletItem[];
     metrics: {
         total_employees: number;
         present: number;
@@ -40,6 +51,8 @@ export default function AdminDashboard({
     selectedDate,
     currentMonth,
     currentYear,
+    activeOutletId = 'all',
+    outlets = [],
     metrics,
     attendances,
     availableEmployees,
@@ -78,14 +91,23 @@ export default function AdminDashboard({
 
         router.get(
             '/administration-control/dashboard',
-            { month: newMonth, year: newYear, date: `${newYear}-${String(newMonth).padStart(2, '0')}-01` },
+            {
+                month: newMonth,
+                year: newYear,
+                date: `${newYear}-${String(newMonth).padStart(2, '0')}-01`,
+                outlet_id: activeOutletId,
+            },
             { preserveState: true },
         );
     };
 
     // Jump to Date
     const handleDateClick = (dateStr: string) => {
-        router.get('/administration-control/dashboard', { date: dateStr, month: currentMonth, year: currentYear }, { preserveState: true });
+        router.get(
+            '/administration-control/dashboard',
+            { date: dateStr, month: currentMonth, year: currentYear, outlet_id: activeOutletId },
+            { preserveState: true }
+        );
         addForm.setData('date', dateStr);
     };
 
@@ -161,6 +183,51 @@ export default function AdminDashboard({
     return (
         <AdminLayout title="Attendance Dashboard & Calendar">
             <Head title="Admin Dashboard - Attendance Management" />
+
+            {/* Outlet Tabs Navigation */}
+            <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+                <button
+                    onClick={() =>
+                        router.get(
+                            '/administration-control/dashboard',
+                            { date: selectedDate, month: currentMonth, year: currentYear, outlet_id: 'all' },
+                            { preserveState: true }
+                        )
+                    }
+                    className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${activeOutletId === 'all' || !activeOutletId
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                        }`}
+                >
+                    <Store className="h-4 w-4" />
+                    <span>All Outlets</span>
+                </button>
+
+                {outlets.map((outlet) => {
+                    const isActive = String(activeOutletId) === String(outlet.id);
+                    return (
+                        <button
+                            key={outlet.id}
+                            onClick={() =>
+                                router.get(
+                                    '/administration-control/dashboard',
+                                    { date: selectedDate, month: currentMonth, year: currentYear, outlet_id: outlet.id },
+                                    { preserveState: true }
+                                )
+                            }
+                            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${isActive
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <Store className="h-4 w-4" />
+                            <span>{outlet.name}</span>
+                            <span className="font-mono text-[10px] opacity-75">({outlet.wifi_ip})</span>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* Calendar & Selected Date Section */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 {/* Top Stat Cards */}
@@ -283,13 +350,12 @@ export default function AdminDashboard({
                                 <button
                                     key={dStr}
                                     onClick={() => handleDateClick(dStr)}
-                                    className={`flex h-14 lg:h-20 cursor-pointer flex-col justify-between rounded-xl border p-1.5 text-left transition-all ${
-                                        isSelected
-                                            ? 'border-indigo-600 bg-indigo-600 text-white shadow-md ring-2 shadow-indigo-600/25 ring-indigo-600/30'
-                                            : isToday
-                                              ? 'border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200'
-                                              : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800'
-                                    }`}
+                                    className={`flex h-14 lg:h-20 cursor-pointer flex-col justify-between rounded-xl border p-1.5 text-left transition-all ${isSelected
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-md ring-2 shadow-indigo-600/25 ring-indigo-600/30'
+                                        : isToday
+                                            ? 'border-indigo-300 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200'
+                                            : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:bg-slate-800'
+                                        }`}
                                 >
                                     <div className="flex w-full items-center justify-between">
                                         <span className={`text-xs lg:text-lg font-bold ${isSelected ? 'text-white' : ''}`}>{dayNum}</span>
@@ -300,21 +366,19 @@ export default function AdminDashboard({
                                     {data.total_present > 0 && (
                                         <div className="hidden items-center gap-1 lg:flex">
                                             <span
-                                                className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${
-                                                    isSelected
-                                                        ? 'bg-white/20 text-white'
-                                                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                                }`}
+                                                className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${isSelected
+                                                    ? 'bg-white/20 text-white'
+                                                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                                    }`}
                                             >
                                                 {data.total_present}p
                                             </span>
                                             {data.total_late > 0 && (
                                                 <span
-                                                    className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${
-                                                        isSelected
-                                                            ? 'bg-amber-400 text-slate-900'
-                                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                                    }`}
+                                                    className={`rounded px-1 text-[10px] lg:px-2 text-md lg:py-1 font-semibold ${isSelected
+                                                        ? 'bg-amber-400 text-slate-900'
+                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                                        }`}
                                                 >
                                                     {data.total_late}L
                                                 </span>
@@ -434,9 +498,15 @@ export default function AdminDashboard({
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-slate-900 dark:text-white">{item.employee?.name}</p>
-                                                            <p className="text-[11px] text-slate-400">
-                                                                {item.employee?.role} &bull; {item.employee?.uid}
-                                                            </p>
+                                                            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                                                                <span>{item.employee?.role} &bull; {item.employee?.uid}</span>
+                                                                {(item.outlet || item.employee?.outlet) && (
+                                                                    <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.2 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                                                        <Store className="h-2.5 w-2.5" />
+                                                                        {(item.outlet || item.employee?.outlet)?.name}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -555,7 +625,7 @@ export default function AdminDashboard({
                                     <option value="">-- Choose Employee --</option>
                                     {availableEmployees.map((emp) => (
                                         <option key={emp.id} value={emp.id}>
-                                            {emp.name} — {emp.role} ({emp.uid})
+                                            {emp.name} — {emp.role} ({emp.uid}){emp.outlet ? ` [${emp.outlet.name}]` : ''}
                                         </option>
                                     ))}
                                 </select>

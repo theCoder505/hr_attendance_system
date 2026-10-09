@@ -81,6 +81,7 @@ class AttendanceService
         }
 
         $attendance = Attendance::create([
+            'outlet_id' => $employee->outlet_id,
             'employee_id' => $employee->id,
             'date' => $date,
             'check_in_at' => $time,

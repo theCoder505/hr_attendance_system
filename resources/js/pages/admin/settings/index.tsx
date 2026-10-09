@@ -18,10 +18,22 @@ import {
     Wifi,
     Plus,
     Trash2,
+    Store,
+    Edit3,
+    X,
 } from 'lucide-react';
-import { showSuccess, showError, showToast } from '@/lib/swal';
+import { showSuccess, showError, showToast, showConfirm } from '@/lib/swal';
 import { useAppearance } from '@/hooks/use-appearance';
 import ImageUploadPreview from '@/components/image-upload-preview';
+
+export interface OutletItem {
+    id: number;
+    uid: string;
+    name: string;
+    wifi_ip: string;
+    employees_count: number;
+    attendances_count?: number;
+}
 
 interface Props {
     settings: {
@@ -34,6 +46,7 @@ interface Props {
         missing_checkout_early_leave_minutes: number;
         admin_login_2fa_enabled: boolean;
     };
+    outlets: OutletItem[];
     admin: {
         name: string;
         email: string;
@@ -43,7 +56,7 @@ interface Props {
     clientIp: string;
 }
 
-export default function SettingsIndex({ settings, admin, clientIp }: Props) {
+export default function SettingsIndex({ settings, outlets = [], admin, clientIp }: Props) {
     const [activeTab, setActiveTab] = useState<'general' | 'security'>('general');
     const [otpRequested, setOtpRequested] = useState(false);
     const { appearance, updateAppearance } = useAppearance();
@@ -76,94 +89,86 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
         password_confirmation: '',
     });
 
-    const parseInitialWifi = (str: string | undefined): string[] => {
-        if (!str) return ['127.0.0.1'];
-        const list = str
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
-        return list.length > 0 ? list.slice(0, 5) : ['127.0.0.1'];
+    // Outlet CRUD state and forms
+    const [addOutletModalOpen, setAddOutletModalOpen] = useState(false);
+    const [editOutletModalOpen, setEditOutletModalOpen] = useState(false);
+    const [editingOutlet, setEditingOutlet] = useState<OutletItem | null>(null);
+
+    const addOutletForm = useForm({
+        name: '',
+        wifi_ip: clientIp || '127.0.0.1',
+    });
+
+    const editOutletForm = useForm({
+        name: '',
+        wifi_ip: '',
+    });
+
+    const handleAddOutletSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        addOutletForm.post('/administration-control/outlets', {
+            onSuccess: () => {
+                setAddOutletModalOpen(false);
+                addOutletForm.reset({ name: '', wifi_ip: clientIp || '127.0.0.1' });
+                showSuccess('Outlet Added', 'New outlet has been registered successfully.');
+            },
+            onError: (err: any) => {
+                showError('Failed to Add Outlet', (Object.values(err)[0] as string) || 'Please check form input.');
+            },
+        });
     };
 
-    const [wifiAddresses, setWifiAddresses] = useState<string[]>(() =>
-        parseInitialWifi(settings.office_ipv4_addr)
-    );
-
-    useEffect(() => {
-        setWifiAddresses(parseInitialWifi(settings.office_ipv4_addr));
-    }, [settings.office_ipv4_addr]);
-
-    const syncWifiToForm = (list: string[]) => {
-        setWifiAddresses(list);
-        generalForm.setData('office_ipv4_addr', list.map((s) => s.trim()).filter(Boolean).join(', '));
+    const handleOpenEditOutlet = (outlet: OutletItem) => {
+        setEditingOutlet(outlet);
+        editOutletForm.setData({
+            name: outlet.name,
+            wifi_ip: outlet.wifi_ip,
+        });
+        setEditOutletModalOpen(true);
     };
 
-    const handleWifiChange = (index: number, val: string) => {
-        const updated = [...wifiAddresses];
-        updated[index] = val;
-        setWifiAddresses(updated);
-        generalForm.setData('office_ipv4_addr', updated.map((s) => s.trim()).filter(Boolean).join(', '));
+    const handleEditOutletSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingOutlet) return;
+        editOutletForm.put(`/administration-control/outlets/${editingOutlet.id}`, {
+            onSuccess: () => {
+                setEditOutletModalOpen(false);
+                setEditingOutlet(null);
+                showSuccess('Outlet Updated', 'Outlet details updated successfully.');
+            },
+            onError: (err: any) => {
+                showError('Failed to Update Outlet', (Object.values(err)[0] as string) || 'Please check form input.');
+            },
+        });
     };
 
-    const handleAddWifi = () => {
-        if (wifiAddresses.length >= 5) {
-            showToast('Maximum 5 WiFi addresses allowed', 'warning');
-            return;
+    const handleDeleteOutlet = async (outlet: OutletItem) => {
+        const confirmed = await showConfirm(
+            `Delete Outlet "${outlet.name}"?`,
+            `⚠️ CRITICAL WARNING: Deleting this outlet will permanently remove all ${outlet.employees_count || 0} employee records and all associated attendance records assigned to this outlet! If you confirm, these records will be deleted immediately.`,
+            'Yes, Delete Outlet & Records',
+            'warning'
+        );
+
+        if (confirmed) {
+            router.delete(`/administration-control/outlets/${outlet.id}`, {
+                onSuccess: () => {
+                    showSuccess('Outlet Deleted', `Outlet "${outlet.name}" and associated records removed.`);
+                },
+            });
         }
-        const updated = [...wifiAddresses, ''];
-        setWifiAddresses(updated);
-    };
-
-    const handleRemoveWifi = (index: number) => {
-        if (wifiAddresses.length <= 1) {
-            const updated = [''];
-            syncWifiToForm(updated);
-            return;
-        }
-        const updated = wifiAddresses.filter((_, i) => i !== index);
-        syncWifiToForm(updated);
-    };
-
-    const handleSetCurrentIp = (index: number) => {
-        if (!clientIp) return;
-        const updated = [...wifiAddresses];
-        updated[index] = clientIp;
-        syncWifiToForm(updated);
-    };
-
-    const handleAddCurrentIp = () => {
-        if (!clientIp) return;
-        if (wifiAddresses.includes(clientIp)) {
-            showToast(`Current IP (${clientIp}) is already in the list`, 'info');
-            return;
-        }
-        const emptyIndex = wifiAddresses.findIndex((ip) => !ip.trim());
-        if (emptyIndex !== -1) {
-            handleSetCurrentIp(emptyIndex);
-            return;
-        }
-        if (wifiAddresses.length >= 5) {
-            showToast('Maximum 5 WiFi addresses reached. Remove one to add current IP.', 'warning');
-            return;
-        }
-        const updated = [...wifiAddresses, clientIp];
-        syncWifiToForm(updated);
     };
 
     const handleGeneralSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const cleaned = wifiAddresses.map((ip) => ip.trim()).filter(Boolean);
-        if (cleaned.length === 0) {
-            showError(
-                'Missing WiFi / IP Address',
-                'Please configure at least one authorized WiFi or network IP address (or * to allow any network).'
-            );
-            return;
-        }
+
+        // Sync office_ipv4_addr from outlets if available
+        const allOutletIps = outlets.map((o) => o.wifi_ip.trim()).filter(Boolean);
+        const resolvedIps = allOutletIps.length > 0 ? allOutletIps.join(', ') : '127.0.0.1';
 
         generalForm.transform((data) => ({
             ...data,
-            office_ipv4_addr: cleaned.join(', '),
+            office_ipv4_addr: resolvedIps,
         }));
 
         generalForm.post('/administration-control/settings/general', {
@@ -210,8 +215,8 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                 <button
                     onClick={() => setActiveTab('general')}
                     className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${activeTab === 'general'
-                            ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                 >
                     <Settings className="h-4 w-4" />
@@ -221,8 +226,8 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                 <button
                     onClick={() => setActiveTab('security')}
                     className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${activeTab === 'security'
-                            ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                 >
                     <Shield className="h-4 w-4" />
@@ -232,7 +237,7 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
 
             {/* TAB 1: General & Rules */}
             {activeTab === 'general' && (
-                <form onSubmit={handleGeneralSubmit} className="space-y-6 max-w-4xl">
+                <form onSubmit={handleGeneralSubmit} className="space-y-6 max-w-9xl">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                         <h3 className="font-bold text-base text-slate-900 dark:text-white mb-1">
                             Branding & Identity
@@ -318,175 +323,150 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 />
                             </div>
+                        </div>
 
-                            {/* Authorized Office WiFi / Network IP Addresses */}
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-                                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
-                                            <Wifi className="h-4 w-4" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                                    Authorized Office WiFi / Network Addresses *
-                                                </label>
-                                                <span
-                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${wifiAddresses.length >= 5
-                                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
-                                                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
-                                                        }`}
-                                                >
-                                                    {wifiAddresses.length} / 5
-                                                </span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                                Employees can only submit attendance when connected to one of these authorized WiFi addresses.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Action buttons on header */}
-                                    <div className="flex items-center gap-2">
-                                        {clientIp && !wifiAddresses.includes(clientIp) && (
-                                            <button
-                                                type="button"
-                                                onClick={handleAddCurrentIp}
-                                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-indigo-400"
-                                                title={`Add your detected network IP (${clientIp})`}
-                                            >
-                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                Add My IP ({clientIp})
-                                            </button>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            onClick={handleAddWifi}
-                                            disabled={wifiAddresses.length >= 5}
-                                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold shadow-sm transition-all cursor-pointer ${wifiAddresses.length >= 5
-                                                    ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'
-                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-500/20'
-                                                }`}
-                                        >
-                                            <Plus className="h-3.5 w-3.5" />
-                                            Add WiFi {wifiAddresses.length >= 5 ? '(Max 5)' : ''}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Dynamic list of WiFi inputs */}
-                                <div className="space-y-2">
-                                    {wifiAddresses.map((ip, index) => {
-                                        const isCurrent = clientIp && ip.trim() === clientIp;
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="group flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950/70"
-                                            >
-                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-semibold text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                                                    #{index + 1}
-                                                </div>
-
-                                                <div className="relative flex-1">
-                                                    <input
-                                                        type="text"
-                                                        value={ip}
-                                                        onChange={(e) => handleWifiChange(index, e.target.value)}
-                                                        placeholder={
-                                                            index === 0
-                                                                ? 'Primary WiFi IP (e.g. 192.168.1.1 or 127.0.0.1)'
-                                                                : `Office WiFi #${index + 1} IP (e.g. 192.168.2.1)`
-                                                        }
-                                                        className="w-full bg-transparent px-2 py-1 font-mono text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
-                                                    />
-                                                </div>
-
-                                                {/* Badge if matches current IP */}
-                                                {isCurrent && (
-                                                    <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60">
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                                        Current IP
-                                                    </span>
-                                                )}
-
-                                                {/* Use current IP button for this specific row */}
-                                                {clientIp && !isCurrent && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSetCurrentIp(index)}
-                                                        className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer"
-                                                        title={`Set to current IP (${clientIp})`}
-                                                    >
-                                                        Use My IP
-                                                    </button>
-                                                )}
-
-                                                {/* Delete button */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveWifi(index)}
-                                                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer ${wifiAddresses.length <= 1
-                                                            ? 'text-slate-300 hover:bg-slate-100 hover:text-slate-500 dark:text-slate-600 dark:hover:bg-slate-800'
-                                                            : 'text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
-                                                        }`}
-                                                    title={wifiAddresses.length <= 1 ? 'Clear address' : 'Remove this WiFi address'}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Footer info and quick hints */}
-                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-semibold text-slate-600 dark:text-slate-300">Tip:</span>
-                                        <span>Use * to disable network restriction and allow attendance from any IP.</span>
+                        {/* Outlets & Multi-Location WiFi Management (Max 5) */}
+                        <div className="rounded-2xl my-4 border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                                        <Store className="h-4 w-4" />
                                     </div>
                                     <div>
-                                        {wifiAddresses.length < 5 ? (
-                                            <button
-                                                type="button"
-                                                onClick={handleAddWifi}
-                                                className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer"
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                                Outlets & Attendance WiFi (Max 5) *
+                                            </label>
+                                            <span
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${outlets.length >= 5
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                                                    : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
+                                                    }`}
                                             >
-                                                <Plus className="h-3 w-3" />
-                                                Add another WiFi address ({5 - wifiAddresses.length} slots remaining)
-                                            </button>
-                                        ) : (
-                                            <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                                Maximum limit reached (5 of 5 WiFi addresses)
+                                                {outlets.length} / 5 Outlets
                                             </span>
-                                        )}
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Assign employees to their respective outlets. Their attendance will be strictly verified against their outlet's WiFi IP.
+                                        </p>
                                     </div>
                                 </div>
 
-                                {generalForm.errors.office_ipv4_addr && (
-                                    <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">
-                                        {generalForm.errors.office_ipv4_addr}
-                                    </p>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (outlets.length >= 5) {
+                                            showToast('Maximum 5 outlets reached. Remove one before adding.', 'warning');
+                                            return;
+                                        }
+                                        addOutletForm.setData({
+                                            name: '',
+                                            wifi_ip: clientIp || '127.0.0.1',
+                                        });
+                                        setAddOutletModalOpen(true);
+                                    }}
+                                    disabled={outlets.length >= 5}
+                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer ${outlets.length >= 5
+                                        ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'
+                                        : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-500/20'
+                                        }`}
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Add Outlet {outlets.length >= 5 ? '(Full)' : ''}
+                                </button>
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                    Missing Check-Out Early Leave Penalty (Minutes) *
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="720"
-                                    value={generalForm.data.missing_checkout_early_leave_minutes}
-                                    onChange={(e) => generalForm.setData('missing_checkout_early_leave_minutes', Number(e.target.value))}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                />
-                                <span className="text-[11px] text-slate-400 mt-1 block">
-                                    Penalty minutes assigned when an attendance record is auto-closed without a check-out.
-                                </span>
+                            {/* Outlets List */}
+                            <div className="space-y-2.5">
+                                {outlets.length === 0 ? (
+                                    <div className="text-center py-6 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-slate-500 text-xs">
+                                        No outlets configured yet. Click "Add Outlet" to set up your first location.
+                                    </div>
+                                ) : (
+                                    outlets.map((outlet, index) => {
+                                        const isCurrentIp = clientIp && outlet.wifi_ip.includes(clientIp);
+                                        return (
+                                            <div
+                                                key={outlet.id}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm transition-all hover:border-indigo-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:border-indigo-800/80"
+                                            >
+                                                <div className="flex items-start sm:items-center gap-3">
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs">
+                                                        #{index + 1}
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                                                                {outlet.name}
+                                                            </h4>
+                                                            <span className="font-mono text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800">
+                                                                {outlet.uid}
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200/60 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800/60">
+                                                                {outlet.employees_count || 0} employees
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                            <span className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                                                                <Wifi className="h-3 w-3 text-indigo-500" />
+                                                                {outlet.wifi_ip}
+                                                            </span>
+
+                                                            {isCurrentIp && (
+                                                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60">
+                                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                                    Your Current Network
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 self-end sm:self-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEditOutlet(outlet)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-indigo-600 rounded-lg hover:bg-slate-100 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                    >
+                                                        <Edit3 className="h-3.5 w-3.5" />
+                                                        Edit
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteOutlet(outlet)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 rounded-lg hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                                        title="Delete outlet and its associated records"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                Missing Check-Out Early Leave Penalty (Minutes) *
+                            </label>
+                            <input
+                                type="number"
+                                required
+                                min="0"
+                                max="720"
+                                value={generalForm.data.missing_checkout_early_leave_minutes}
+                                onChange={(e) => generalForm.setData('missing_checkout_early_leave_minutes', Number(e.target.value))}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                            <span className="text-[11px] text-slate-400 mt-1 block">
+                                Penalty minutes assigned when an attendance record is auto-closed without a check-out.
+                            </span>
                         </div>
                     </div>
 
@@ -504,7 +484,7 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
 
             {/* TAB 2: Admin Profile & Security */}
             {activeTab === 'security' && (
-                <div className="space-y-6 max-w-4xl">
+                <div className="space-y-6 max-w-9xl">
                     {/* Basic Profile */}
                     <form onSubmit={handleProfileSubmit} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                         <h3 className="font-bold text-base text-slate-900 dark:text-white mb-1">
@@ -596,8 +576,8 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                             type="button"
                                             onClick={() => updateAppearance('light')}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'light'
-                                                    ? 'bg-white text-slate-900 shadow-sm'
-                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                                ? 'bg-white text-slate-900 shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                                 }`}
                                         >
                                             <Sun className="h-3.5 w-3.5 text-amber-500" />
@@ -607,8 +587,8 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                             type="button"
                                             onClick={() => updateAppearance('dark')}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'dark'
-                                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                                 }`}
                                         >
                                             <Moon className="h-3.5 w-3.5 text-indigo-300" />
@@ -618,8 +598,8 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                             type="button"
                                             onClick={() => updateAppearance('system')}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'system'
-                                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                                 }`}
                                         >
                                             <Monitor className="h-3.5 w-3.5 text-slate-400" />
@@ -783,6 +763,193 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                 </div>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Add Outlet */}
+            {addOutletModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2.5">
+                                <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                    <Store className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base text-slate-900 dark:text-white">Add New Outlet</h3>
+                                    <p className="text-xs text-slate-500">Max 5 outlets allowed across system</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAddOutletModalOpen(false)}
+                                className="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleAddOutletSubmit} className="space-y-4 pt-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Outlet Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Downtown Branch, Central Kitchen"
+                                    value={addOutletForm.data.name}
+                                    onChange={(e) => addOutletForm.setData('name', e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                {addOutletForm.errors.name && (
+                                    <p className="text-rose-500 text-xs mt-1">{addOutletForm.errors.name}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        Authorized WiFi / Network IP *
+                                    </label>
+                                    {clientIp && (
+                                        <button
+                                            type="button"
+                                            onClick={() => addOutletForm.setData('wifi_ip', clientIp)}
+                                            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer"
+                                        >
+                                            Use My IP ({clientIp})
+                                        </button>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. 192.168.1.1 or 127.0.0.1"
+                                    value={addOutletForm.data.wifi_ip}
+                                    onChange={(e) => addOutletForm.setData('wifi_ip', e.target.value)}
+                                    className="w-full font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                    Only employees assigned to this outlet and connected to this WiFi IP can clock in/out.
+                                </p>
+                                {addOutletForm.errors.wifi_ip && (
+                                    <p className="text-rose-500 text-xs mt-1">{addOutletForm.errors.wifi_ip}</p>
+                                )}
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setAddOutletModalOpen(false)}
+                                    className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addOutletForm.processing}
+                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer transition-all"
+                                >
+                                    {addOutletForm.processing ? 'Saving...' : 'Add Outlet'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Edit Outlet */}
+            {editOutletModalOpen && editingOutlet && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2.5">
+                                <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                    <Edit3 className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base text-slate-900 dark:text-white">Edit Outlet</h3>
+                                    <p className="text-xs font-mono text-slate-400">{editingOutlet.uid}</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditOutletModalOpen(false);
+                                    setEditingOutlet(null);
+                                }}
+                                className="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditOutletSubmit} className="space-y-4 pt-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Outlet Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editOutletForm.data.name}
+                                    onChange={(e) => editOutletForm.setData('name', e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                {editOutletForm.errors.name && (
+                                    <p className="text-rose-500 text-xs mt-1">{editOutletForm.errors.name}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        Authorized WiFi / Network IP *
+                                    </label>
+                                    {clientIp && (
+                                        <button
+                                            type="button"
+                                            onClick={() => editOutletForm.setData('wifi_ip', clientIp)}
+                                            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer"
+                                        >
+                                            Use My IP ({clientIp})
+                                        </button>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editOutletForm.data.wifi_ip}
+                                    onChange={(e) => editOutletForm.setData('wifi_ip', e.target.value)}
+                                    className="w-full font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                {editOutletForm.errors.wifi_ip && (
+                                    <p className="text-rose-500 text-xs mt-1">{editOutletForm.errors.wifi_ip}</p>
+                                )}
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditOutletModalOpen(false);
+                                        setEditingOutlet(null);
+                                    }}
+                                    className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editOutletForm.processing}
+                                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer transition-all"
+                                >
+                                    {editOutletForm.processing ? 'Saving...' : 'Update Outlet'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
