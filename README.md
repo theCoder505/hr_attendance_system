@@ -51,7 +51,7 @@ Designed with clean architecture, strict MVC boundaries, the **Service Pattern**
 
 ### 3. Employee Portal (`/attendance`)
 * **Device Authentication**: Requests carry the `X-Device-Token` header read from `localStorage`. The server verifies the SHA-256 hash against active employees.
-* **Office Network Enforcement**: Checks `request()->ip()` against `office_ipv4_addr` from settings (supports multiple comma-separated IPs or wildcard `*`). If off-network, displays: *"Please come to the office and use your registered device"*.
+* **Office Network Enforcement**: Checks `request()->ip()` against authorized office WiFi / network IP addresses configured in settings (supports up to 5 WiFi addresses, or wildcard `*`). If off-network, displays: *"Please come to the office and use your registered device"*.
 * **State-Aware Actions**:
   * **Clock In**: State-aware button available when no open shift exists for today. Calculates late minutes if clocking in after scheduled start time.
   * **Clock Out**: State-aware button available when a shift is active. Automatically computes Early Leave or Overtime minutes based on the employee's shift end time.

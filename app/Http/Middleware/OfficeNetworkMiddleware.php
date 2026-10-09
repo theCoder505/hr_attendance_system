@@ -23,10 +23,17 @@ class OfficeNetworkMiddleware
 
             // Normalize localhost IPv6 to IPv4 if necessary
             $normalizedClientIp = ($clientIp === '::1') ? '127.0.0.1' : $clientIp;
-            $normalizedOfficeIp = ($officeIp === '::1') ? '127.0.0.1' : $officeIp;
 
             // Check if matches or if multiple comma-separated IPs are allowed
-            $allowedIps = array_map('trim', explode(',', $normalizedOfficeIp));
+            $allowedIps = array_map(function ($ip) {
+                $trimmed = trim($ip);
+                return ($trimmed === '::1') ? '127.0.0.1' : $trimmed;
+            }, explode(',', $officeIp));
+
+            // If wildcard * is present in allowed IPs, bypass restriction
+            if (in_array('*', $allowedIps, true)) {
+                return $next($request);
+            }
 
             if (! in_array($normalizedClientIp, $allowedIps, true)) {
                 if ($request->expectsJson() || $request->isXmlHttpRequest() || $request->header('X-Inertia')) {

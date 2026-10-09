@@ -49,6 +49,10 @@ class SettingsController extends Controller
         $data = $request->validated();
         $data['admin_login_2fa_enabled'] = $request->boolean('admin_login_2fa_enabled');
 
+        if (empty(trim((string) ($data['office_ipv4_addr'] ?? '')))) {
+            $data['office_ipv4_addr'] = '127.0.0.1';
+        }
+
         if ($request->hasFile('logo')) {
             if (! empty($settings->logo) && Storage::disk('public')->exists($settings->logo)) {
                 Storage::disk('public')->delete($settings->logo);

@@ -1,31 +1,31 @@
 {
-  "name": "AttendEase Pro",
-  "short_name": "AttendEase",
-  "description": "Real-time Attendance and Employee Management Portal",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
-  "icons": [
-    {
-      "src": "/favicon.ico",
-      "sizes": "192x192",
-      "type": "image/x-icon",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "512x512",
-      "type": "image/x-icon",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "any",
-      "type": "image/x-icon",
-      "purpose": "any maskable"
-    }
-  ]
+    "name": "AttendanceVenture",
+    "short_name": "AttendanceVenture",
+    "description": "Real-time Attendance and Employee Management Portal",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#ffffff",
+    "theme_color": "#4f46e5",
+    "icons": [
+        {
+            "src": "http://127.0.0.1:8000/storage/settings/gq42QUYkFmajC9ianRKeo1N93npcOjfr5enRCubN.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "http://127.0.0.1:8000/storage/settings/gq42QUYkFmajC9ianRKeo1N93npcOjfr5enRCubN.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "http://127.0.0.1:8000/storage/settings/gq42QUYkFmajC9ianRKeo1N93npcOjfr5enRCubN.png",
+            "sizes": "any",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
 }

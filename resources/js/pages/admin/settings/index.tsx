@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/layouts/admin-layout';
 import {
@@ -15,6 +15,9 @@ import {
     Sun,
     Moon,
     Monitor,
+    Wifi,
+    Plus,
+    Trash2,
 } from 'lucide-react';
 import { showSuccess, showError, showToast } from '@/lib/swal';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -73,8 +76,96 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
         password_confirmation: '',
     });
 
+    const parseInitialWifi = (str: string | undefined): string[] => {
+        if (!str) return ['127.0.0.1'];
+        const list = str
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        return list.length > 0 ? list.slice(0, 5) : ['127.0.0.1'];
+    };
+
+    const [wifiAddresses, setWifiAddresses] = useState<string[]>(() =>
+        parseInitialWifi(settings.office_ipv4_addr)
+    );
+
+    useEffect(() => {
+        setWifiAddresses(parseInitialWifi(settings.office_ipv4_addr));
+    }, [settings.office_ipv4_addr]);
+
+    const syncWifiToForm = (list: string[]) => {
+        setWifiAddresses(list);
+        generalForm.setData('office_ipv4_addr', list.map((s) => s.trim()).filter(Boolean).join(', '));
+    };
+
+    const handleWifiChange = (index: number, val: string) => {
+        const updated = [...wifiAddresses];
+        updated[index] = val;
+        setWifiAddresses(updated);
+        generalForm.setData('office_ipv4_addr', updated.map((s) => s.trim()).filter(Boolean).join(', '));
+    };
+
+    const handleAddWifi = () => {
+        if (wifiAddresses.length >= 5) {
+            showToast('Maximum 5 WiFi addresses allowed', 'warning');
+            return;
+        }
+        const updated = [...wifiAddresses, ''];
+        setWifiAddresses(updated);
+    };
+
+    const handleRemoveWifi = (index: number) => {
+        if (wifiAddresses.length <= 1) {
+            const updated = [''];
+            syncWifiToForm(updated);
+            return;
+        }
+        const updated = wifiAddresses.filter((_, i) => i !== index);
+        syncWifiToForm(updated);
+    };
+
+    const handleSetCurrentIp = (index: number) => {
+        if (!clientIp) return;
+        const updated = [...wifiAddresses];
+        updated[index] = clientIp;
+        syncWifiToForm(updated);
+    };
+
+    const handleAddCurrentIp = () => {
+        if (!clientIp) return;
+        if (wifiAddresses.includes(clientIp)) {
+            showToast(`Current IP (${clientIp}) is already in the list`, 'info');
+            return;
+        }
+        const emptyIndex = wifiAddresses.findIndex((ip) => !ip.trim());
+        if (emptyIndex !== -1) {
+            handleSetCurrentIp(emptyIndex);
+            return;
+        }
+        if (wifiAddresses.length >= 5) {
+            showToast('Maximum 5 WiFi addresses reached. Remove one to add current IP.', 'warning');
+            return;
+        }
+        const updated = [...wifiAddresses, clientIp];
+        syncWifiToForm(updated);
+    };
+
     const handleGeneralSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const cleaned = wifiAddresses.map((ip) => ip.trim()).filter(Boolean);
+        if (cleaned.length === 0) {
+            showError(
+                'Missing WiFi / IP Address',
+                'Please configure at least one authorized WiFi or network IP address (or * to allow any network).'
+            );
+            return;
+        }
+
+        generalForm.transform((data) => ({
+            ...data,
+            office_ipv4_addr: cleaned.join(', '),
+        }));
+
         generalForm.post('/administration-control/settings/general', {
             onSuccess: () => {
                 generalForm.setData((prev) => ({ ...prev, logo: null, favicon: null }));
@@ -118,11 +209,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
             <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
                 <button
                     onClick={() => setActiveTab('general')}
-                    className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                        activeTab === 'general'
+                    className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${activeTab === 'general'
                             ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                             : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}
+                        }`}
                 >
                     <Settings className="h-4 w-4" />
                     Attendance Rules & Brand
@@ -130,11 +220,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
 
                 <button
                     onClick={() => setActiveTab('security')}
-                    className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-                        activeTab === 'security'
+                    className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${activeTab === 'security'
                             ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
                             : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                    }`}
+                        }`}
                 >
                     <Shield className="h-4 w-4" />
                     Admin Profile & 2FA Security
@@ -230,30 +319,155 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                 />
                             </div>
 
-                            <div>
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        Office IPv4 Address *
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={() => generalForm.setData('office_ipv4_addr', clientIp)}
-                                        className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                                    >
-                                        Set to my current IP ({clientIp})
-                                    </button>
+                            {/* Authorized Office WiFi / Network IP Addresses */}
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                                            <Wifi className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                                    Authorized Office WiFi / Network Addresses *
+                                                </label>
+                                                <span
+                                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${wifiAddresses.length >= 5
+                                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                                                            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
+                                                        }`}
+                                                >
+                                                    {wifiAddresses.length} / 5
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                                Employees can only submit attendance when connected to one of these authorized WiFi addresses.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons on header */}
+                                    <div className="flex items-center gap-2">
+                                        {clientIp && !wifiAddresses.includes(clientIp) && (
+                                            <button
+                                                type="button"
+                                                onClick={handleAddCurrentIp}
+                                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-indigo-600 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-indigo-400"
+                                                title={`Add your detected network IP (${clientIp})`}
+                                            >
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                Add My IP ({clientIp})
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={handleAddWifi}
+                                            disabled={wifiAddresses.length >= 5}
+                                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold shadow-sm transition-all cursor-pointer ${wifiAddresses.length >= 5
+                                                    ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'
+                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-500/20'
+                                                }`}
+                                        >
+                                            <Plus className="h-3.5 w-3.5" />
+                                            Add WiFi {wifiAddresses.length >= 5 ? '(Max 5)' : ''}
+                                        </button>
+                                    </div>
                                 </div>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="127.0.0.1 or comma-separated IPs"
-                                    value={generalForm.data.office_ipv4_addr}
-                                    onChange={(e) => generalForm.setData('office_ipv4_addr', e.target.value)}
-                                    className="w-full font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                />
-                                <span className="text-[11px] text-slate-400 mt-1 block">
-                                    Employees must connect from this office IP to clock in/out. (Set to * to disable restriction).
-                                </span>
+
+                                {/* Dynamic list of WiFi inputs */}
+                                <div className="space-y-2">
+                                    {wifiAddresses.map((ip, index) => {
+                                        const isCurrent = clientIp && ip.trim() === clientIp;
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="group flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-1.5 transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950/70"
+                                            >
+                                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-semibold text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                                    #{index + 1}
+                                                </div>
+
+                                                <div className="relative flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={ip}
+                                                        onChange={(e) => handleWifiChange(index, e.target.value)}
+                                                        placeholder={
+                                                            index === 0
+                                                                ? 'Primary WiFi IP (e.g. 192.168.1.1 or 127.0.0.1)'
+                                                                : `Office WiFi #${index + 1} IP (e.g. 192.168.2.1)`
+                                                        }
+                                                        className="w-full bg-transparent px-2 py-1 font-mono text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
+                                                    />
+                                                </div>
+
+                                                {/* Badge if matches current IP */}
+                                                {isCurrent && (
+                                                    <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60">
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                        Current IP
+                                                    </span>
+                                                )}
+
+                                                {/* Use current IP button for this specific row */}
+                                                {clientIp && !isCurrent && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSetCurrentIp(index)}
+                                                        className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/50 transition-colors cursor-pointer"
+                                                        title={`Set to current IP (${clientIp})`}
+                                                    >
+                                                        Use My IP
+                                                    </button>
+                                                )}
+
+                                                {/* Delete button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveWifi(index)}
+                                                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer ${wifiAddresses.length <= 1
+                                                            ? 'text-slate-300 hover:bg-slate-100 hover:text-slate-500 dark:text-slate-600 dark:hover:bg-slate-800'
+                                                            : 'text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
+                                                        }`}
+                                                    title={wifiAddresses.length <= 1 ? 'Clear address' : 'Remove this WiFi address'}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Footer info and quick hints */}
+                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-slate-600 dark:text-slate-300">Tip:</span>
+                                        <span>Use * to disable network restriction and allow attendance from any IP.</span>
+                                    </div>
+                                    <div>
+                                        {wifiAddresses.length < 5 ? (
+                                            <button
+                                                type="button"
+                                                onClick={handleAddWifi}
+                                                className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer"
+                                            >
+                                                <Plus className="h-3 w-3" />
+                                                Add another WiFi address ({5 - wifiAddresses.length} slots remaining)
+                                            </button>
+                                        ) : (
+                                            <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                                Maximum limit reached (5 of 5 WiFi addresses)
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {generalForm.errors.office_ipv4_addr && (
+                                    <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+                                        {generalForm.errors.office_ipv4_addr}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -381,11 +595,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                         <button
                                             type="button"
                                             onClick={() => updateAppearance('light')}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                                                appearance === 'light'
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'light'
                                                     ? 'bg-white text-slate-900 shadow-sm'
                                                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                            }`}
+                                                }`}
                                         >
                                             <Sun className="h-3.5 w-3.5 text-amber-500" />
                                             Light
@@ -393,11 +606,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                         <button
                                             type="button"
                                             onClick={() => updateAppearance('dark')}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                                                appearance === 'dark'
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'dark'
                                                     ? 'bg-indigo-600 text-white shadow-sm'
                                                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                            }`}
+                                                }`}
                                         >
                                             <Moon className="h-3.5 w-3.5 text-indigo-300" />
                                             Dark
@@ -405,11 +617,10 @@ export default function SettingsIndex({ settings, admin, clientIp }: Props) {
                                         <button
                                             type="button"
                                             onClick={() => updateAppearance('system')}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                                                appearance === 'system'
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${appearance === 'system'
                                                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                                                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                            }`}
+                                                }`}
                                         >
                                             <Monitor className="h-3.5 w-3.5 text-slate-400" />
                                             System
