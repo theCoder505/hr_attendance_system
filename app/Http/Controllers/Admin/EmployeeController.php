@@ -53,6 +53,7 @@ class EmployeeController extends Controller
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
             'outlets' => $outlets,
+            'maxEmployeesPerOutlet' => (int) ($admin->max_employees_per_outlet ?: 25),
             'currencySymbol' => $settings->currency_symbol ?: 'BDT',
             'filters' => [
                 'search' => $search ?? '',
@@ -76,9 +77,18 @@ class EmployeeController extends Controller
         $data = $request->validated();
 
         if (! empty($data['outlet_id'])) {
-            $validOutlet = $admin->outlets()->where('id', $data['outlet_id'])->exists();
-            if (! $validOutlet) {
+            $outlet = $admin->outlets()->where('id', $data['outlet_id'])->first();
+            if (! $outlet) {
                 return back()->with('error', 'The selected outlet does not belong to your store.');
+            }
+
+            $maxLimit = (int) ($outlet->max_employees ?: ($admin->max_employees_per_outlet ?: 25));
+            $currentCount = $outlet->employees()->count();
+
+            if ($currentCount >= $maxLimit) {
+                return back()
+                    ->with('error', "Maximum limit of {$maxLimit} employees reached for outlet '{$outlet->name}'. You cannot add more employees to this outlet.")
+                    ->withErrors(['outlet_id' => "Limit of {$maxLimit} employees reached for outlet '{$outlet->name}'."]);
             }
         }
 
@@ -109,9 +119,21 @@ class EmployeeController extends Controller
         $data = $request->validated();
 
         if (! empty($data['outlet_id'])) {
-            $validOutlet = $admin->outlets()->where('id', $data['outlet_id'])->exists();
-            if (! $validOutlet) {
+            $outlet = $admin->outlets()->where('id', $data['outlet_id'])->first();
+            if (! $outlet) {
                 return back()->with('error', 'The selected outlet does not belong to your store.');
+            }
+
+            // If the employee is being transferred to a different outlet, check if the target outlet has reached its limit
+            if ((int) $employee->outlet_id !== (int) $data['outlet_id']) {
+                $maxLimit = (int) ($outlet->max_employees ?: ($admin->max_employees_per_outlet ?: 25));
+                $currentCount = $outlet->employees()->count();
+
+                if ($currentCount >= $maxLimit) {
+                    return back()
+                        ->with('error', "Cannot transfer employee. Target outlet '{$outlet->name}' has already reached its maximum limit of {$maxLimit} employees.")
+                        ->withErrors(['outlet_id' => "Limit of {$maxLimit} employees reached for outlet '{$outlet->name}'."]);
+                }
             }
         }
 

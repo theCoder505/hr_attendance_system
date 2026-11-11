@@ -40,6 +40,7 @@ class SettingsController extends Controller
                 'email' => $admin->email,
                 'session_time' => $admin->session_time,
                 'max_outlets' => (int) ($admin->max_outlets ?: 5),
+                'max_employees_per_outlet' => (int) ($admin->max_employees_per_outlet ?: 25),
                 'two_factor_enabled' => (bool) $admin->two_factor_enabled,
             ],
             'clientIp' => $request->ip(),

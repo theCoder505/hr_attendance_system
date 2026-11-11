@@ -22,6 +22,7 @@ interface StoreItem {
     name: string;
     email: string;
     max_outlets: number;
+    max_employees_per_outlet?: number;
     max_storage_mb: number;
     max_storage_formatted?: string;
     storage_used_percentage?: number;
@@ -69,6 +70,7 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: '',
         password: '',
         max_outlets: 5,
+        max_employees_per_outlet: 25,
         max_storage_mb: 100,
         is_lifetime_free: false,
         monthly_fee: 500,
@@ -82,6 +84,7 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: string;
         password: string;
         max_outlets: number;
+        max_employees_per_outlet: number;
         max_storage_mb: number;
         is_lifetime_free: boolean;
         monthly_fee: number;
@@ -92,6 +95,7 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: '',
         password: '',
         max_outlets: 5,
+        max_employees_per_outlet: 25,
         max_storage_mb: 500,
         is_lifetime_free: false,
         monthly_fee: 500,
@@ -113,6 +117,7 @@ export default function StoresIndex({ stores, filters }: Props) {
             email: store.email,
             password: '',
             max_outlets: store.max_outlets,
+            max_employees_per_outlet: store.max_employees_per_outlet || 25,
             max_storage_mb: store.max_storage_mb || 500,
             is_lifetime_free: Boolean(store.is_lifetime_free),
             monthly_fee: store.monthly_fee || 500,
@@ -306,23 +311,30 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
 
                                 {/* Quotas and Usage Badges */}
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
-                                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
-                                        <span className="text-[10px] text-slate-400 block font-medium">Max Outlets Quota</span>
-                                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block">
-                                            {store.outlets_count} / {store.max_outlets} Used
+                                <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+                                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
+                                        <span className="text-[10px] text-slate-400 block font-medium">Outlets</span>
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
+                                            {store.outlets_count} / {store.max_outlets}
                                         </span>
                                     </div>
 
-                                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
+                                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
+                                        <span className="text-[10px] text-slate-400 block font-medium">Limit / Outlet</span>
+                                        <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
+                                            Max {store.max_employees_per_outlet || 25}
+                                        </span>
+                                    </div>
+
+                                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-slate-400 block font-medium">Data Storage</span>
-                                            <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 font-mono">
+                                            <span className="text-[10px] text-slate-400 block font-medium">Storage</span>
+                                            <span className="text-[9px] font-semibold text-purple-600 dark:text-purple-400 font-mono">
                                                 {store.storage_used_percentage ?? 0}%
                                             </span>
                                         </div>
                                         <span className="text-xs font-bold font-mono text-purple-600 dark:text-purple-400 mt-0.5 block truncate">
-                                            {store.storage_formatted} / {store.max_storage_formatted || `${store.max_storage_mb || 500} MB`}
+                                            {store.storage_formatted}
                                         </span>
                                     </div>
                                 </div>
@@ -442,10 +454,10 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        Maximum Allowed Outlets <span className="text-rose-500">*</span>
+                                        Max Outlets <span className="text-rose-500">*</span>
                                     </label>
                                     <input
                                         type="number"
@@ -460,8 +472,25 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
 
                                 <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        Max Emps / Outlet <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={10000}
+                                        required
+                                        value={createForm.data.max_employees_per_outlet}
+                                        onChange={(e) => createForm.setData('max_employees_per_outlet', parseInt(e.target.value) || 25)}
+                                        className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <p className="text-[10px] text-slate-400">Default: 25</p>
+                                    {createForm.errors.max_employees_per_outlet && <p className="text-xs text-rose-500">{createForm.errors.max_employees_per_outlet}</p>}
+                                </div>
+
+                                <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                        <span>Max Data Storage Limit (MB) <span className="text-rose-500">*</span></span>
+                                        <span>Storage (MB) <span className="text-rose-500">*</span></span>
                                     </label>
                                     <input
                                         type="number"
@@ -473,7 +502,7 @@ export default function StoresIndex({ stores, filters }: Props) {
                                         onChange={(e) => createForm.setData('max_storage_mb', parseInt(e.target.value) || 500)}
                                         className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                     />
-                                    <p className="text-[10px] text-slate-400">e.g. 500 MB, 1024 MB (1GB), 2048 MB</p>
+                                    <p className="text-[10px] text-slate-400">e.g. 500 MB, 1024 MB</p>
                                     {createForm.errors.max_storage_mb && <p className="text-xs text-rose-500">{createForm.errors.max_storage_mb}</p>}
                                 </div>
                             </div>
@@ -625,7 +654,7 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                                         Max Outlets <span className="text-rose-500">*</span>
@@ -641,6 +670,23 @@ export default function StoresIndex({ stores, filters }: Props) {
                                     />
                                     <p className="text-[10px] text-slate-500">{selectedStore.outlets_count} active</p>
                                     {editForm.errors.max_outlets && <p className="text-xs text-rose-500">{editForm.errors.max_outlets}</p>}
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        Max Emps / Outlet <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={10000}
+                                        required
+                                        value={editForm.data.max_employees_per_outlet}
+                                        onChange={(e) => editForm.setData('max_employees_per_outlet', parseInt(e.target.value) || 25)}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <p className="text-[10px] text-slate-500">Per outlet quota</p>
+                                    {editForm.errors.max_employees_per_outlet && <p className="text-xs text-rose-500">{editForm.errors.max_employees_per_outlet}</p>}
                                 </div>
 
                                 <div className="space-y-1">

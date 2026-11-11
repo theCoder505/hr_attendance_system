@@ -34,6 +34,7 @@ export interface OutletItem {
     wifi_ip: string;
     employees_count: number;
     attendances_count?: number;
+    max_employees?: number;
 }
 
 interface Props {
@@ -58,6 +59,7 @@ interface Props {
         session_time: number;
         two_factor_enabled: boolean;
         max_outlets?: number;
+        max_employees_per_outlet?: number;
     };
     clientIp: string;
 }
@@ -68,6 +70,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
     const { appearance, updateAppearance } = useAppearance();
 
     const maxOutlets = Number(admin.max_outlets) > 0 ? Number(admin.max_outlets) : 5;
+    const maxEmployeesPerOutlet = Number(admin.max_employees_per_outlet) > 0 ? Number(admin.max_employees_per_outlet) : 25;
     const isQuotaFull = outlets.length >= maxOutlets;
 
     // Form 1: General Settings (Attendance & Shift Rules)
@@ -391,12 +394,15 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                             >
                                                 {outlets.length} / {maxOutlets} Outlets
                                             </span>
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/60">
+                                                Max {maxEmployeesPerOutlet} Employees / Outlet
+                                            </span>
                                             <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50">
-                                                Quota Set by Super Admin
+                                                Quotas Set by Super Admin
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Assign employees to their respective outlets. Your outlet quota is dynamically managed by the Super Admin ({outlets.length} of {maxOutlets} used).
+                                            Assign employees to their respective outlets. Your outlet quota ({outlets.length} of {maxOutlets}) and per-outlet employee limit ({maxEmployeesPerOutlet} max) are managed by Super Admin.
                                         </p>
                                     </div>
                                 </div>
@@ -434,6 +440,8 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                 ) : (
                                     outlets.map((outlet, index) => {
                                         const isCurrentIp = clientIp && outlet.wifi_ip.includes(clientIp);
+                                        const outletLimit = outlet.max_employees || maxEmployeesPerOutlet;
+                                        const isOutletFull = (outlet.employees_count || 0) >= outletLimit;
                                         return (
                                             <div
                                                 key={outlet.id}
@@ -452,8 +460,14 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                                             <span className="font-mono text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800">
                                                                 {outlet.uid}
                                                             </span>
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200/60 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800/60">
-                                                                {outlet.employees_count || 0} employees
+                                                            <span
+                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                                                                    isOutletFull
+                                                                        ? 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800/60'
+                                                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200/60 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800/60'
+                                                                }`}
+                                                            >
+                                                                {outlet.employees_count || 0} / {outletLimit} employees{isOutletFull ? ' (Full)' : ''}
                                                             </span>
                                                         </div>
 

@@ -27,6 +27,7 @@ interface StoreData {
     name: string;
     email: string;
     max_outlets: number;
+    max_employees_per_outlet?: number;
     max_storage_mb?: number;
     max_storage_formatted?: string;
     storage_used_percentage?: number;

@@ -35,6 +35,7 @@ class Admin extends Authenticatable
         'password',
         'max_outlets',
         'max_storage_mb',
+        'max_employees_per_outlet',
         'is_lifetime_free',
         'monthly_fee',
         'otp',
@@ -67,6 +68,7 @@ class Admin extends Authenticatable
             'session_time' => 'integer',
             'max_outlets' => 'integer',
             'max_storage_mb' => 'integer',
+            'max_employees_per_outlet' => 'integer',
             'is_lifetime_free' => 'boolean',
             'monthly_fee' => 'decimal:2',
             'two_factor_enabled' => 'boolean',
@@ -92,6 +94,9 @@ class Admin extends Authenticatable
             }
             if (empty($admin->max_storage_mb)) {
                 $admin->max_storage_mb = 500;
+            }
+            if (empty($admin->max_employees_per_outlet)) {
+                $admin->max_employees_per_outlet = 25;
             }
         });
     }

@@ -37,14 +37,16 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('MyPass@2026#'),
                 'session_time' => 30,
                 'max_outlets' => 5,
+                'max_employees_per_outlet' => 25,
             ]
         );
 
-        // Ensure store_id and max_outlets are populated
+        // Ensure store_id and quotas are populated
         if (empty($defaultAdmin->store_id)) {
             $defaultAdmin->update([
                 'store_id' => 'STR-MAIN01',
                 'max_outlets' => 5,
+                'max_employees_per_outlet' => 25,
             ]);
         }
 

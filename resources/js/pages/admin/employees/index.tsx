@@ -12,6 +12,7 @@ interface OutletItem {
     name: string;
     wifi_ip: string;
     employees_count?: number;
+    max_employees?: number;
 }
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
         last_page: number;
     };
     outlets: OutletItem[];
+    maxEmployeesPerOutlet?: number;
     filters: {
         search: string;
         status: string;
@@ -36,7 +38,7 @@ interface Props {
     currencySymbol?: string;
 }
 
-export default function EmployeeIndex({ employees, outlets = [], filters, defaultTimes, appUrl, currencySymbol = 'BDT' }: Props) {
+export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPerOutlet = 25, filters, defaultTimes, appUrl, currencySymbol = 'BDT' }: Props) {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -45,6 +47,29 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [outletFilter, setOutletFilter] = useState(filters.outlet_id || '');
+
+    const allOutletsFull = outlets.length > 0 && outlets.every((o) => (o.employees_count || 0) >= (o.max_employees || maxEmployeesPerOutlet));
+
+    const handleOpenCreateModal = () => {
+        const currentSelected = outlets.find((o) => String(o.id) === String(createForm.data.outlet_id));
+        const currentLimit = currentSelected?.max_employees || maxEmployeesPerOutlet;
+        if (!currentSelected || (currentSelected.employees_count || 0) >= currentLimit) {
+            const available = outlets.find((o) => (o.employees_count || 0) < (o.max_employees || maxEmployeesPerOutlet));
+            if (available) {
+                createForm.setData('outlet_id', String(available.id));
+            }
+        }
+        setCreateModalOpen(true);
+    };
+
+    const selectedCreateOutlet = outlets.find((o) => String(o.id) === String(createForm.data.outlet_id));
+    const selectedCreateLimit = selectedCreateOutlet?.max_employees || maxEmployeesPerOutlet;
+    const isSelectedCreateOutletFull = Boolean(selectedCreateOutlet && (selectedCreateOutlet.employees_count || 0) >= selectedCreateLimit);
+
+    const selectedEditOutlet = outlets.find((o) => String(o.id) === String(editForm.data.outlet_id));
+    const selectedEditLimit = selectedEditOutlet?.max_employees || maxEmployeesPerOutlet;
+    const isTransferringOutlet = Boolean(selectedEmployee && String(selectedEmployee.outlet_id) !== String(editForm.data.outlet_id));
+    const isSelectedEditOutletFull = Boolean(isTransferringOutlet && selectedEditOutlet && (selectedEditOutlet.employees_count || 0) >= selectedEditLimit);
 
     // Form for creating new employee
     const createForm = useForm({
@@ -209,7 +234,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                         <option value="">All Outlets</option>
                         {outlets.map((o) => (
                             <option key={o.id} value={o.id}>
-                                {o.name}
+                                {o.name} ({o.employees_count || 0}/{o.max_employees || maxEmployeesPerOutlet})
                             </option>
                         ))}
                     </select>
@@ -230,7 +255,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                 </div>
 
                 <button
-                    onClick={() => setCreateModalOpen(true)}
+                    onClick={handleOpenCreateModal}
                     className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-500"
                 >
                     <UserPlus className="h-4 w-4" />
@@ -502,7 +527,10 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                 </div>
 
                                 <div>
-                                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                        <span className="text-[10px] text-slate-400 font-medium">Quota: {maxEmployeesPerOutlet} per outlet</span>
+                                    </div>
                                     <select
                                         required
                                         value={createForm.data.outlet_id}
@@ -512,14 +540,30 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                         {outlets.length === 0 ? (
                                             <option value="">No outlets available - create one first</option>
                                         ) : (
-                                            outlets.map((o) => (
-                                                <option key={o.id} value={o.id}>
-                                                    {o.name} ({o.wifi_ip})
-                                                </option>
-                                            ))
+                                            outlets.map((o) => {
+                                                const limit = o.max_employees || maxEmployeesPerOutlet;
+                                                const count = o.employees_count || 0;
+                                                const isFull = count >= limit;
+                                                return (
+                                                    <option key={o.id} value={o.id} disabled={isFull}>
+                                                        {o.name} ({o.wifi_ip}) — {count}/{limit} Employees{isFull ? ' (FULL - Limit Reached)' : ''}
+                                                    </option>
+                                                );
+                                            })
                                         )}
                                     </select>
                                     {createForm.errors.outlet_id && <p className="mt-1 text-xs text-rose-500">{createForm.errors.outlet_id}</p>}
+                                    {isSelectedCreateOutletFull && (
+                                        <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50/90 p-2.5 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                                            <div className="flex items-center gap-1.5 font-semibold">
+                                                <Store className="h-4 w-4 shrink-0 text-rose-500" />
+                                                <span>Outlet Capacity Full ({selectedCreateOutlet?.employees_count} / {selectedCreateLimit} Employees)</span>
+                                            </div>
+                                            <p className="mt-0.5 text-[11px] opacity-90">
+                                                This outlet has reached the maximum allowed limit of {selectedCreateLimit} employees set by Super Admin. You cannot add more employees here. Please assign to another outlet or contact Super Admin to increase your limit.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
@@ -635,10 +679,14 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={createForm.processing}
-                                    className="cursor-pointer rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-500"
+                                    disabled={createForm.processing || isSelectedCreateOutletFull}
+                                    className={`rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-md transition-all ${
+                                        isSelectedCreateOutletFull
+                                            ? 'cursor-not-allowed bg-slate-400 opacity-60'
+                                            : 'cursor-pointer bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
+                                    }`}
                                 >
-                                    {createForm.processing ? 'Registering...' : 'Register & Generate Link'}
+                                    {createForm.processing ? 'Registering...' : isSelectedCreateOutletFull ? 'Outlet Capacity Full' : 'Register & Generate Link'}
                                 </button>
                             </div>
                         </form>
@@ -704,20 +752,40 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                 </div>
 
                                 <div>
-                                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assigned Outlet *</label>
+                                        <span className="text-[10px] text-slate-400 font-medium">Quota: {maxEmployeesPerOutlet} per outlet</span>
+                                    </div>
                                     <select
                                         required
                                         value={editForm.data.outlet_id}
                                         onChange={(e) => editForm.setData('outlet_id', e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                                     >
-                                        {outlets.map((o) => (
-                                            <option key={o.id} value={o.id}>
-                                                {o.name} ({o.wifi_ip})
-                                            </option>
-                                        ))}
+                                        {outlets.map((o) => {
+                                            const limit = o.max_employees || maxEmployeesPerOutlet;
+                                            const count = o.employees_count || 0;
+                                            const isCurrent = selectedEmployee && String(selectedEmployee.outlet_id) === String(o.id);
+                                            const isFull = !isCurrent && count >= limit;
+                                            return (
+                                                <option key={o.id} value={o.id} disabled={isFull}>
+                                                    {o.name} ({o.wifi_ip}) — {count}/{limit} Employees{isCurrent ? ' (Current)' : isFull ? ' (FULL - Limit Reached)' : ''}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                     {editForm.errors.outlet_id && <p className="mt-1 text-xs text-rose-500">{editForm.errors.outlet_id}</p>}
+                                    {isSelectedEditOutletFull && (
+                                        <div className="mt-2 rounded-xl border border-rose-200 bg-rose-50/90 p-2.5 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                                            <div className="flex items-center gap-1.5 font-semibold">
+                                                <Store className="h-4 w-4 shrink-0 text-rose-500" />
+                                                <span>Target Outlet Full ({selectedEditOutlet?.employees_count} / {selectedEditLimit} Employees)</span>
+                                            </div>
+                                            <p className="mt-0.5 text-[11px] opacity-90">
+                                                Cannot transfer employee. Target outlet "{selectedEditOutlet?.name}" has already reached its maximum limit of {selectedEditLimit} employees.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
@@ -807,10 +875,14 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={editForm.processing}
-                                    className="cursor-pointer rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-500"
+                                    disabled={editForm.processing || isSelectedEditOutletFull}
+                                    className={`rounded-xl px-5 py-2.5 text-xs font-semibold text-white shadow-md transition-all ${
+                                        isSelectedEditOutletFull
+                                            ? 'cursor-not-allowed bg-slate-400 opacity-60'
+                                            : 'cursor-pointer bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
+                                    }`}
                                 >
-                                    {editForm.processing ? 'Saving...' : 'Update Employee'}
+                                    {editForm.processing ? 'Saving...' : isSelectedEditOutletFull ? 'Target Outlet Full' : 'Update Employee'}
                                 </button>
                             </div>
                         </form>

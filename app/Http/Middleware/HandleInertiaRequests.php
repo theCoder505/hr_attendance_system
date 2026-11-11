@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $admin->name,
                     'email' => $admin->email,
                     'max_outlets' => $admin->max_outlets,
+                    'max_employees_per_outlet' => (int) ($admin->max_employees_per_outlet ?: 25),
                     'is_lifetime_free' => (bool) $admin->is_lifetime_free,
                     'is_suspended' => $admin->isSuspended(),
                     'session_time' => $admin->session_time,

@@ -19,7 +19,25 @@ class Outlet extends Model
         'uid',
         'name',
         'wifi_ip',
+        'max_employees',
     ];
+
+    protected $casts = [
+        'max_employees' => 'integer',
+    ];
+
+    /**
+     * Effective max employees limit for this outlet.
+     * Falls back to the admin's max_employees_per_outlet setting if not individually overridden.
+     */
+    public function getMaxEmployeesLimitAttribute(): int
+    {
+        if ($this->max_employees !== null && (int) $this->max_employees > 0) {
+            return (int) $this->max_employees;
+        }
+
+        return (int) ($this->admin?->max_employees_per_outlet ?: 25);
+    }
 
     protected static function booted(): void
     {

@@ -49,6 +49,7 @@ class DashboardController extends Controller
                 'name' => $store->name,
                 'email' => $store->email,
                 'max_outlets' => $store->max_outlets,
+                'max_employees_per_outlet' => (int) ($store->max_employees_per_outlet ?: 25),
                 'max_storage_mb' => $details['max_storage_mb'],
                 'max_storage_formatted' => $details['max_storage_formatted'],
                 'storage_used_percentage' => $details['used_percentage'],

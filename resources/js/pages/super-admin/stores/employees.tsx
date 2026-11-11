@@ -49,6 +49,7 @@ interface Props {
         name: string;
         email: string;
         max_outlets: number;
+        max_employees_per_outlet?: number;
         outlets_count: number;
         employees_count: number;
         storage_formatted: string;
@@ -149,6 +150,10 @@ export default function StoreEmployees({ store, employees, filters, currencySymb
                         <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-medium">Outlets</span>
                             <span className="font-bold text-slate-900 dark:text-white">{store.outlets_count} / {store.max_outlets}</span>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] text-slate-400 block font-medium">Limit / Outlet</span>
+                            <span className="font-bold text-slate-900 dark:text-white">Max {store.max_employees_per_outlet || 25}</span>
                         </div>
                         <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-medium">Total Staff</span>
