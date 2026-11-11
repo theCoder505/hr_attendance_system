@@ -15,6 +15,7 @@ class WebsiteSetting extends Model
     protected $fillable = [
         'admin_id',
         'brandname',
+        'currency_symbol',
         'logo',
         'favicon',
         'office_starting_time',
@@ -53,6 +54,7 @@ class WebsiteSetting extends Model
             return static::create([
                 'admin_id' => $adminId,
                 'brandname' => $global->brandname ?? 'AttendEase Store',
+                'currency_symbol' => $global->currency_symbol ?? 'BDT',
                 'logo' => $global->logo,
                 'favicon' => $global->favicon,
                 'office_starting_time' => $global->office_starting_time ?? '09:00:00',

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Employee;
 use App\Models\WebsiteSetting;
+use App\Services\StorageCalculatorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,8 @@ class StoreController extends Controller
 
         // Transform stores to include storage metrics
         $stores->through(function ($store) {
+            $storageDetails = StorageCalculatorService::getStoreStorageDetails($store);
+
             return [
                 'id' => $store->id,
                 'uid' => $store->uid,
@@ -46,13 +49,21 @@ class StoreController extends Controller
                 'name' => $store->name,
                 'email' => $store->email,
                 'max_outlets' => $store->max_outlets,
+                'max_storage_mb' => $storageDetails['max_storage_mb'],
+                'max_storage_formatted' => $storageDetails['max_storage_formatted'],
+                'storage_used_percentage' => $storageDetails['used_percentage'],
                 'is_lifetime_free' => (bool) $store->is_lifetime_free,
                 'monthly_fee' => (float) ($store->monthly_fee ?? 500.00),
                 'is_suspended' => $store->isSuspended(),
                 'outlets_count' => $store->outlets_count,
                 'employees_count' => $store->employees_count,
-                'storage_bytes' => $store->getTotalStorageBytes(),
-                'storage_formatted' => $store->formatted_storage,
+                'storage_bytes' => $storageDetails['total_bytes'],
+                'storage_formatted' => $storageDetails['total_formatted'],
+                'storage_breakdown' => [
+                    'media_formatted' => $storageDetails['media_formatted'],
+                    'attendance_formatted' => $storageDetails['attendance_formatted'],
+                    'db_formatted' => $storageDetails['db_formatted'],
+                ],
                 'session_time' => $store->session_time,
                 'two_factor_enabled' => (bool) $store->two_factor_enabled,
                 'created_at' => $store->created_at?->toFormattedDateString(),
@@ -77,6 +88,7 @@ class StoreController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:admins,email'],
             'password' => ['required', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
+            'max_storage_mb' => ['required', 'integer', 'min:10', 'max:102400'],
             'is_lifetime_free' => ['boolean'],
             'monthly_fee' => ['nullable', 'numeric', 'min:0'],
             'session_time' => ['nullable', 'integer', 'min:5', 'max:720'],
@@ -95,6 +107,7 @@ class StoreController extends Controller
                 'password' => Hash::make($request->password),
                 'store_id' => $storeId,
                 'max_outlets' => (int) $request->max_outlets,
+                'max_storage_mb' => (int) ($request->max_storage_mb ?: 500),
                 'is_lifetime_free' => $request->boolean('is_lifetime_free'),
                 'monthly_fee' => $request->filled('monthly_fee') ? (float) $request->monthly_fee : 500.00,
                 'session_time' => (int) ($request->session_time ?: 30),
@@ -128,6 +141,7 @@ class StoreController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:admins,email,' . $store->id],
             'password' => ['nullable', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
+            'max_storage_mb' => ['required', 'integer', 'min:10', 'max:102400'],
             'is_lifetime_free' => ['boolean'],
             'monthly_fee' => ['nullable', 'numeric', 'min:0'],
             'session_time' => ['nullable', 'integer', 'min:5', 'max:720'],
@@ -141,6 +155,7 @@ class StoreController extends Controller
             'name' => trim($request->name),
             'email' => trim($request->email),
             'max_outlets' => (int) $request->max_outlets,
+            'max_storage_mb' => (int) ($request->max_storage_mb ?: 500),
             'is_lifetime_free' => $isLifetimeFree,
             'monthly_fee' => $newMonthlyFee,
             'session_time' => (int) ($request->session_time ?: 30),
@@ -244,7 +259,9 @@ class StoreController extends Controller
                 'outlets_count' => $store->outlets()->count(),
                 'employees_count' => $store->employees()->count(),
                 'storage_formatted' => $store->formatted_storage,
+                'currencySymbol' => $store->setting?->currency_symbol ?: 'BDT',
             ],
+            'currencySymbol' => $store->setting?->currency_symbol ?: 'BDT',
             'employees' => $employees,
             'filters' => [
                 'search' => $search ?? '',

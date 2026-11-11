@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteSetting;
+use App\Services\StorageCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -86,6 +87,7 @@ class DashboardController extends Controller
         }
 
         $settings = WebsiteSetting::forAdmin($admin->id);
+        $storageDetails = StorageCalculatorService::getStoreStorageDetails($admin);
 
         return Inertia::render('admin/dashboard/index', [
             'selectedDate' => $selectedDate,
@@ -105,6 +107,7 @@ class DashboardController extends Controller
             'availableEmployees' => $availableEmployees,
             'calendarDays' => $calendarDays,
             'settings' => $settings,
+            'storageDetails' => $storageDetails,
         ]);
     }
 }

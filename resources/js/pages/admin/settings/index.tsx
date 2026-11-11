@@ -21,6 +21,7 @@ import {
     Store,
     Edit3,
     X,
+    Banknote,
 } from 'lucide-react';
 import { showSuccess, showError, showToast, showConfirm } from '@/lib/swal';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -38,6 +39,7 @@ export interface OutletItem {
 interface Props {
     settings: {
         brandname: string;
+        currency_symbol?: string;
         logo: string | null;
         favicon: string | null;
         office_starting_time: string;
@@ -70,6 +72,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
 
     // Form 1: General Settings (Attendance & Shift Rules)
     const generalForm = useForm({
+        currency_symbol: settings.currency_symbol || 'BDT',
         office_starting_time: settings.office_starting_time || '09:00',
         office_closing_time: settings.office_closing_time || '17:00',
         office_ipv4_addr: settings.office_ipv4_addr || '127.0.0.1',
@@ -312,6 +315,59 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                     onChange={(e) => generalForm.setData('office_closing_time', e.target.value)}
                                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Store Currency & Salary Unit Setting */}
+                        <div className="rounded-2xl my-4 border border-slate-200 bg-slate-50/70 p-4.5 dark:border-slate-800 dark:bg-slate-900/50 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                        <Banknote className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                                            Store Currency & Salary Unit (Default: BDT)
+                                        </label>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Choose or type the currency code or symbol displayed for your employees' salaries and payroll.
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 self-start sm:self-auto">
+                                    Active Currency: {generalForm.data.currency_symbol || 'BDT'}
+                                </span>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+                                <div className="w-full sm:w-48">
+                                    <input
+                                        type="text"
+                                        maxLength={16}
+                                        value={generalForm.data.currency_symbol}
+                                        onChange={(e) => generalForm.setData('currency_symbol', e.target.value.toUpperCase())}
+                                        placeholder="e.g. BDT, ৳, USD, $, EUR"
+                                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] text-slate-400 font-semibold mr-1">Presets:</span>
+                                    {['BDT', '৳', 'USD', '$', 'EUR', 'GBP', 'INR', 'SAR', 'AED'].map((curr) => (
+                                        <button
+                                            key={curr}
+                                            type="button"
+                                            onClick={() => generalForm.setData('currency_symbol', curr)}
+                                            className={`px-2.5 py-1 text-[11px] font-mono rounded-lg border transition-all cursor-pointer ${
+                                                generalForm.data.currency_symbol === curr
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                            }`}
+                                        >
+                                            {curr}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

@@ -60,7 +60,10 @@ class SettingsController extends Controller
             $data['office_ipv4_addr'] = '127.0.0.1';
         }
 
+        $currency = trim((string) ($data['currency_symbol'] ?? ''));
+
         $settings->update([
+            'currency_symbol' => ! empty($currency) ? $currency : 'BDT',
             'office_starting_time' => $data['office_starting_time'],
             'office_closing_time' => $data['office_closing_time'],
             'office_ipv4_addr' => $data['office_ipv4_addr'],

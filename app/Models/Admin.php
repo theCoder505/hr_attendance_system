@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StorageCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -33,6 +34,7 @@ class Admin extends Authenticatable
         'email',
         'password',
         'max_outlets',
+        'max_storage_mb',
         'is_lifetime_free',
         'monthly_fee',
         'otp',
@@ -64,6 +66,7 @@ class Admin extends Authenticatable
             'otp_expires_at' => 'datetime',
             'session_time' => 'integer',
             'max_outlets' => 'integer',
+            'max_storage_mb' => 'integer',
             'is_lifetime_free' => 'boolean',
             'monthly_fee' => 'decimal:2',
             'two_factor_enabled' => 'boolean',
@@ -86,6 +89,9 @@ class Admin extends Authenticatable
             }
             if (empty($admin->max_outlets)) {
                 $admin->max_outlets = 5;
+            }
+            if (empty($admin->max_storage_mb)) {
+                $admin->max_storage_mb = 500;
             }
         });
     }
@@ -197,36 +203,11 @@ class Admin extends Authenticatable
     }
 
     /**
-     * Calculate total storage bytes consumed by this admin's uploaded files.
+     * Calculate total storage bytes consumed by this admin (images + attendance + database).
      */
     public function getTotalStorageBytes(): int
     {
-        $bytes = 0;
-        $disk = Storage::disk('public');
-
-        // Check employee images and appointment letters
-        $employees = $this->employees()->select('image', 'appointment_letter')->get();
-        foreach ($employees as $emp) {
-            if ($emp->image && $disk->exists($emp->image)) {
-                $bytes += (int) $disk->size($emp->image);
-            }
-            if ($emp->appointment_letter && $disk->exists($emp->appointment_letter)) {
-                $bytes += (int) $disk->size($emp->appointment_letter);
-            }
-        }
-
-        // Check store setting files
-        $setting = $this->setting;
-        if ($setting) {
-            if ($setting->logo && $disk->exists($setting->logo)) {
-                $bytes += (int) $disk->size($setting->logo);
-            }
-            if ($setting->favicon && $disk->exists($setting->favicon)) {
-                $bytes += (int) $disk->size($setting->favicon);
-            }
-        }
-
-        return $bytes;
+        return StorageCalculatorService::getStoreStorageDetails($this)['total_bytes'];
     }
 
     /**
@@ -234,18 +215,15 @@ class Admin extends Authenticatable
      */
     public function getFormattedStorageAttribute(): string
     {
-        $bytes = $this->getTotalStorageBytes();
-        if ($bytes < 1024) {
-            return $bytes . ' B';
-        }
-        if ($bytes < 1048576) {
-            return round($bytes / 1024, 2) . ' KB';
-        }
-        if ($bytes < 1073741824) {
-            return round($bytes / 1048576, 2) . ' MB';
-        }
+        return StorageCalculatorService::formatBytes($this->getTotalStorageBytes());
+    }
 
-        return round($bytes / 1073741824, 2) . ' GB';
+    /**
+     * Get detailed storage usage breakdown.
+     */
+    public function getStorageDetails(): array
+    {
+        return StorageCalculatorService::getStoreStorageDetails($this);
     }
 
     /**

@@ -64,9 +64,10 @@ interface Props {
         search: string;
         status: string;
     };
+    currencySymbol?: string;
 }
 
-export default function StoreEmployees({ store, employees, filters }: Props) {
+export default function StoreEmployees({ store, employees, filters, currencySymbol = 'BDT' }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
@@ -267,7 +268,7 @@ export default function StoreEmployees({ store, employees, filters }: Props) {
 
                                         <td className="py-4 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                                             {emp.check_in_time.substring(0, 5)} - {emp.check_out_time.substring(0, 5)}
-                                            <span className="block text-[10px] text-slate-400">({emp.working_hours}h daily)</span>
+                                            <span className="block text-[10px] text-slate-400">({emp.working_hours}h daily &bull; {currencySymbol} {Number(emp.salary).toLocaleString()})</span>
                                         </td>
 
                                         <td className="py-4 px-4">

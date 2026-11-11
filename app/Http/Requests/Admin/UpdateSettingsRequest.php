@@ -32,6 +32,7 @@ class UpdateSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'currency_symbol' => ['nullable', 'string', 'max:16'],
             'office_starting_time' => ['required', 'string'],
             'office_closing_time' => ['required', 'string'],
             'office_ipv4_addr' => ['required', 'string', 'max:255'],

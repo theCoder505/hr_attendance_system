@@ -53,6 +53,7 @@ class EmployeeController extends Controller
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
             'outlets' => $outlets,
+            'currencySymbol' => $settings->currency_symbol ?: 'BDT',
             'filters' => [
                 'search' => $search ?? '',
                 'status' => $status ?? '',

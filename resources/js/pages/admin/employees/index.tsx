@@ -33,9 +33,10 @@ interface Props {
         check_out_time: string;
     };
     appUrl: string;
+    currencySymbol?: string;
 }
 
-export default function EmployeeIndex({ employees, outlets = [], filters, defaultTimes, appUrl }: Props) {
+export default function EmployeeIndex({ employees, outlets = [], filters, defaultTimes, appUrl, currencySymbol = 'BDT' }: Props) {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -52,7 +53,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
         role: '',
         work_desc: '',
         outlet_id: outlets.length > 0 ? String(outlets[0].id) : '',
-        salary: '6000',
+        salary: '15000',
         working_hours: '8.00',
         check_in_time: defaultTimes.check_in_time || '09:00',
         check_out_time: defaultTimes.check_out_time || '17:00',
@@ -312,7 +313,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                         <td className="py-3.5">
                                             <div className="min-w-50 text-center">
                                                 <p className="font-semibold text-slate-900 dark:text-white">{emp.working_hours} hrs/day</p>
-                                                <p className="text-[11px] text-slate-400">Salary: ${Number(emp.salary).toLocaleString()}</p>
+                                                <p className="text-[11px] text-slate-400">Salary: {currencySymbol} {Number(emp.salary).toLocaleString()}</p>
                                             </div>
                                         </td>
 
@@ -523,7 +524,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
 
                                 <div>
                                     <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        Monthly Salary ($) *
+                                        Monthly Salary ({currencySymbol}) *
                                     </label>
                                     <input
                                         type="number"
@@ -721,7 +722,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
 
                                 <div>
                                     <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        Monthly Salary ($) *
+                                        Monthly Salary ({currencySymbol}) *
                                     </label>
                                     <input
                                         type="number"
@@ -882,7 +883,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
                                 <div>
                                     <span className="mb-0.5 block text-slate-400">Hours & Salary:</span>
                                     <span className="font-semibold text-slate-900 dark:text-white">
-                                        {selectedEmployee.working_hours} hrs/day (${Number(selectedEmployee.salary).toLocaleString()})
+                                        {selectedEmployee.working_hours} hrs/day ({currencySymbol} {Number(selectedEmployee.salary).toLocaleString()})
                                     </span>
                                 </div>
                             </div>
