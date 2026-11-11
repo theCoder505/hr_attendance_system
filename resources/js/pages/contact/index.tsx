@@ -13,6 +13,10 @@ import {
     Sparkles,
     MessageSquare,
     AlertCircle,
+    MessageCircle,
+    Facebook,
+    Youtube,
+    ExternalLink
 } from 'lucide-react';
 import { showToast, showError, showSuccess } from '@/lib/swal';
 import SurfaceLayout from '@/components/surface-layout';
@@ -21,9 +25,15 @@ interface Props {
     brandname: string;
     logo: string | null;
     verifiedEmail: string | null;
+    contactSettings?: {
+        whatsapp_number: string | null;
+        contact_number: string | null;
+        facebook_url: string | null;
+        youtube_url: string | null;
+    };
 }
 
-export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
+export default function ContactPage({ brandname, logo, verifiedEmail, contactSettings }: Props) {
     // Form fields
     const [companyName, setCompanyName] = useState('');
     const [subject, setSubject] = useState('');
@@ -263,6 +273,133 @@ export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
                         Interested in setting up multiple outlets and automated employee attendance for your company? Contact the platform administration owner below.
                     </p>
                 </div>
+
+                {/* Direct Contact Channels & Social Media (Configured by Super Admin) */}
+                {(contactSettings?.whatsapp_number || contactSettings?.contact_number || contactSettings?.facebook_url || contactSettings?.youtube_url) && (
+                    <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* WhatsApp Direct Chat */}
+                        {contactSettings.whatsapp_number && (
+                            <a
+                                href={`https://wa.me/${contactSettings.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello! I am inquiring about the ${brandname} Attendance Management System.`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-900/60 shadow-sm hover:shadow-md hover:border-emerald-500 dark:hover:border-emerald-500 transition-all cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                        <MessageCircle className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                        Fast Reply
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                        WhatsApp Chat
+                                    </h3>
+                                    <p className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+                                        {contactSettings.whatsapp_number}
+                                    </p>
+                                </div>
+                                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                    <span>Chat Now</span>
+                                    <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </div>
+                            </a>
+                        )}
+
+                        {/* Contact Phone / Helpline */}
+                        {contactSettings.contact_number && (
+                            <a
+                                href={`tel:${contactSettings.contact_number}`}
+                                className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-blue-200 dark:border-blue-900/60 shadow-sm hover:shadow-md hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                        <Phone className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                        Helpline
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        Phone Call
+                                    </h3>
+                                    <p className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+                                        {contactSettings.contact_number}
+                                    </p>
+                                </div>
+                                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+                                    <span>Call Support</span>
+                                    <Phone className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </div>
+                            </a>
+                        )}
+
+                        {/* Facebook Page */}
+                        {contactSettings.facebook_url && (
+                            <a
+                                href={contactSettings.facebook_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-indigo-200 dark:border-indigo-900/60 shadow-sm hover:shadow-md hover:border-indigo-500 dark:hover:border-indigo-500 transition-all cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                        <Facebook className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                        Community
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                        Facebook Page
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                                        Official Updates
+                                    </p>
+                                </div>
+                                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                                    <span>Visit Page</span>
+                                    <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </div>
+                            </a>
+                        )}
+
+                        {/* YouTube Channel */}
+                        {contactSettings.youtube_url && (
+                            <a
+                                href={contactSettings.youtube_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative flex flex-col justify-between p-4 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-rose-200 dark:border-rose-900/60 shadow-sm hover:shadow-md hover:border-rose-500 dark:hover:border-rose-500 transition-all cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="h-10 w-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                                        <Youtube className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                        Videos
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                                        YouTube Channel
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                                        Demos & Guides
+                                    </p>
+                                </div>
+                                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                                    <span>Watch Channel</span>
+                                    <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                                </div>
+                            </a>
+                        )}
+                    </div>
+                )}
 
                 {submittedSuccess ? (
                     <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xl">

@@ -24,7 +24,7 @@ class AuthController extends Controller
         $settings = WebsiteSetting::current();
 
         return Inertia::render('super-admin/auth/login', [
-            'brandname' => $settings->brandname ?? 'AttendEase Pro',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
         ]);
     }

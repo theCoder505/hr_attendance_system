@@ -25,7 +25,7 @@ class SuperAdminOtpMail extends Mailable
         $this->otp = $otp;
         $this->purpose = $purpose;
         $settings = WebsiteSetting::current();
-        $this->brandname = $settings->brandname ?? 'AttendEase Pro';
+        $this->brandname = $settings->brandname ?? config('app.name');
     }
 
     /**

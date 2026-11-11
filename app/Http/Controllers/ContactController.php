@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\ContactOtpMail;
 use App\Models\ContactInquiry;
+use App\Models\PlatformSetting;
 use App\Models\WebsiteSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,13 +21,20 @@ class ContactController extends Controller
     public function index(Request $request): Response
     {
         $settings = WebsiteSetting::current();
+        $platform = PlatformSetting::instance();
 
         $verifiedEmail = session('contact_email_verified') ? session('contact_verified_email') : null;
 
         return Inertia::render('contact/index', [
-            'brandname' => $settings->brandname ?? 'AttendEase Pro',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
             'verifiedEmail' => $verifiedEmail,
+            'contactSettings' => [
+                'whatsapp_number' => $platform->whatsapp_number,
+                'contact_number' => $platform->contact_number,
+                'facebook_url' => $platform->facebook_url,
+                'youtube_url' => $platform->youtube_url,
+            ],
         ]);
     }
 

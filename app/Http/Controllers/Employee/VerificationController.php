@@ -26,7 +26,7 @@ class VerificationController extends Controller
             return Inertia::render('employee/verify-result', [
                 'status' => 'invalid',
                 'message' => 'This verification link is invalid or has already been used. Please ask your administrator for a new link.',
-                'brandname' => $settings->brandname ?? 'AttendEase',
+                'brandname' => $settings->brandname ?? config('app.name'),
                 'logo' => $settings->logo,
             ]);
         }
@@ -35,7 +35,7 @@ class VerificationController extends Controller
             return Inertia::render('employee/verify-result', [
                 'status' => 'expired',
                 'message' => 'This verification link has expired. Please request a new verification link from your administrator.',
-                'brandname' => $settings->brandname ?? 'AttendEase',
+                'brandname' => $settings->brandname ?? config('app.name'),
                 'logo' => $settings->logo,
             ]);
         }
@@ -75,7 +75,7 @@ class VerificationController extends Controller
                 'role' => $employee->role,
             ],
             'expires_at' => Carbon::now()->addMonth()->toFormattedDateString(),
-            'brandname' => $settings->brandname ?? 'AttendEase',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
         ]);
     }

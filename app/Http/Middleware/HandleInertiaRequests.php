@@ -38,16 +38,20 @@ class HandleInertiaRequests extends Middleware
     {
         $admin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
         $superAdmin = \Illuminate\Support\Facades\Auth::guard('super_admin')->user();
+        $globalSetting = \App\Models\WebsiteSetting::current();
+
         if ($request->is('super-admin*')) {
-            $settings = \App\Models\WebsiteSetting::current();
+            $settings = $globalSetting;
         } elseif ($admin) {
             $settings = \App\Models\WebsiteSetting::forAdmin($admin->id);
         } else {
-            $settings = \App\Models\WebsiteSetting::current();
+            $settings = $globalSetting;
         }
 
+        $brandname = ! empty($globalSetting->brandname) ? $globalSetting->brandname : ($settings->brandname ?? config('app.name', 'Attendance'));
+
         return array_merge(parent::share($request), [
-            'name' => $settings->brandname ?? config('app.name'),
+            'name' => $brandname,
             'settings' => $settings,
             'timezone' => config('app.timezone', 'Asia/Dhaka'),
             'auth' => [

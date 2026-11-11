@@ -58,7 +58,7 @@ class WebsiteSetting extends Model
                     $setting->favicon = $global->favicon;
                     $needsSave = true;
                 }
-                if (empty($setting->brandname)) {
+                if (! empty($global->brandname) && $setting->brandname !== $global->brandname) {
                     $setting->brandname = $global->brandname;
                     $needsSave = true;
                 }
@@ -71,7 +71,7 @@ class WebsiteSetting extends Model
             // Create new settings record copied from global defaults
             return static::create([
                 'admin_id' => $adminId,
-                'brandname' => $global->brandname ?? 'AttendEase Store',
+                'brandname' => $global->brandname ?? 'Attendance',
                 'currency_symbol' => $global->currency_symbol ?? 'BDT',
                 'logo' => $global->logo,
                 'favicon' => $global->favicon,
@@ -98,7 +98,7 @@ class WebsiteSetting extends Model
             $legacy = static::first();
             $setting = static::create([
                 'admin_id' => null,
-                'brandname' => $legacy?->brandname ?? 'AttendEase Pro',
+                'brandname' => $legacy?->brandname ?? 'Attendance',
                 'logo' => $legacy?->logo ?? null,
                 'favicon' => $legacy?->favicon ?? null,
                 'office_starting_time' => $legacy?->office_starting_time ?? '09:00:00',
@@ -128,7 +128,7 @@ class WebsiteSetting extends Model
     {
         try {
             $settings = static::current();
-            $brandname = !empty($settings->brandname) ? $settings->brandname : config('app.name', 'AttendEase Pro');
+            $brandname = !empty($settings->brandname) ? $settings->brandname : config('app.name', 'Attendance');
 
             $faviconUrl = !empty($settings->favicon)
                 ? asset('storage/' . $settings->favicon)

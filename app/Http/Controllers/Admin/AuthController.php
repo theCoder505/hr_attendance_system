@@ -31,7 +31,7 @@ class AuthController extends Controller
         $settings = WebsiteSetting::current();
 
         return Inertia::render('admin/auth/login', [
-            'brandname' => $settings->brandname ?? 'AttendEase',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
         ]);
     }

@@ -9,7 +9,7 @@ interface Props {
 
 export default function ErrorPage({ status = 404, message }: Props) {
     const { settings, name }: any = usePage().props;
-    const brandname = settings?.brandname || name || 'AttendEase Pro';
+    const brandname = settings?.brandname || name || 'Attendance';
 
     const errorDetails: Record<number, { title: string; subtitle: string; description: string; icon: any; color: string }> = {
         404: {

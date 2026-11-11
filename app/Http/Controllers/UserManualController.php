@@ -21,7 +21,7 @@ class UserManualController extends Controller
         $pdfUrl = $platform->user_manual_pdf_path ?: '/docs/user-manual.pdf';
 
         return Inertia::render('user-manual/index', [
-            'brandname' => $website->brandname ?? 'AttendEase',
+            'brandname' => $website->brandname ?? config('app.name'),
             'logo' => $website->logo,
             'pdfUrl' => $pdfUrl,
         ]);

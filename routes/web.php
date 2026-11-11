@@ -30,7 +30,7 @@ Route::get('/', function () {
 // Dynamic Web App Manifest (PWA standalone browser support with dynamic favicon and brandname)
 Route::get('/manifest.json', function () {
     $settings = WebsiteSetting::current();
-    $brandname = ! empty($settings->brandname) ? $settings->brandname : config('app.name', 'AttendEase Pro');
+    $brandname = ! empty($settings->brandname) ? $settings->brandname : config('app.name', 'Attendance');
 
     $faviconUrl = ! empty($settings->favicon)
         ? asset('storage/'.$settings->favicon)
@@ -123,6 +123,14 @@ Route::get('/contact', [ContactController::class, 'index'])->name('contact.index
 Route::post('/contact/send-otp', [ContactController::class, 'sendOtp'])->name('contact.send-otp');
 Route::post('/contact/verify-otp', [ContactController::class, 'verifyOtp'])->name('contact.verify-otp');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+Route::get('/download-portfolio-docx', function () {
+    $filePath = public_path('downloads/AttendEase_Pro_Sales_Portfolio.docx');
+    if (! file_exists($filePath)) {
+        abort(404, 'Portfolio document not found.');
+    }
+
+    return response()->download($filePath, 'AttendEase_Pro_Sales_Portfolio.docx');
+})->name('portfolio.docx');
 
 /*
 |--------------------------------------------------------------------------

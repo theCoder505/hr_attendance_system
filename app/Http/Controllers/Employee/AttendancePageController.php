@@ -25,7 +25,7 @@ class AttendancePageController extends Controller
         $settings = WebsiteSetting::current();
 
         return Inertia::render('attendance/index', [
-            'brandname' => $settings->brandname ?? 'AttendEase',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
             'officeStartingTime' => $settings->office_starting_time,
             'officeClosingTime' => $settings->office_closing_time,
@@ -51,7 +51,7 @@ class AttendancePageController extends Controller
         }
 
         return Inertia::render('attendance/suspended', [
-            'brandname' => $settings->brandname ?? 'AttendEase',
+            'brandname' => $settings->brandname ?? config('app.name'),
             'logo' => $settings->logo,
             'storeName' => $store->name,
             'storeId' => $store->store_id,

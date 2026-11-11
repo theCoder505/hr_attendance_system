@@ -36,7 +36,7 @@ class ProfileController extends Controller
                 'created_at' => $superAdmin->created_at?->toFormattedDateString(),
             ],
             'branding' => [
-                'brandname' => $branding->brandname ?? 'AttendEase Pro',
+                'brandname' => $branding->brandname ?? config('app.name'),
                 'logo' => $branding->logo,
                 'favicon' => $branding->favicon,
             ],
@@ -55,6 +55,12 @@ class ProfileController extends Controller
                 'bank_enabled' => (bool) $platform->bank_enabled,
                 'payment_due_day' => (int) ($platform->payment_due_day ?: 7),
                 'default_monthly_fee' => (float) ($platform->default_monthly_fee ?: 500.00),
+            ],
+            'contactSettings' => [
+                'whatsapp_number' => $platform->whatsapp_number ?? '',
+                'contact_number' => $platform->contact_number ?? '',
+                'facebook_url' => $platform->facebook_url ?? '',
+                'youtube_url' => $platform->youtube_url ?? '',
             ],
         ]);
     }
@@ -102,6 +108,21 @@ class ProfileController extends Controller
         }
         if (isset($data['brandname'])) {
             $cascade['brandname'] = $data['brandname'];
+
+            // Also keep .env APP_NAME in sync with Super Admin configured brand name
+            try {
+                $envPath = base_path('.env');
+                if (file_exists($envPath)) {
+                    $envContent = file_get_contents($envPath);
+                    $escaped = addcslashes($data['brandname'], '"');
+                    if (preg_match('/^APP_NAME=.*/m', $envContent)) {
+                        $envContent = preg_replace('/^APP_NAME=.*/m', 'APP_NAME="' . $escaped . '"', $envContent);
+                        file_put_contents($envPath, $envContent);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore if .env is not writable
+            }
         }
         if (! empty($cascade)) {
             WebsiteSetting::whereNotNull('admin_id')->update($cascade);
@@ -229,6 +250,24 @@ class ProfileController extends Controller
         $superAdmin->save();
 
         return back()->with('success', 'Super admin credentials updated successfully!');
+    }
+
+    /**
+     * Update official platform contact & social channels (WhatsApp, Contact Phone, Facebook, YouTube).
+     */
+    public function updateContactChannels(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'whatsapp_number' => ['nullable', 'string', 'max:64'],
+            'contact_number' => ['nullable', 'string', 'max:64'],
+            'facebook_url' => ['nullable', 'url', 'max:255'],
+            'youtube_url' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $platform = PlatformSetting::instance();
+        $platform->update($validated);
+
+        return back()->with('success', 'Official contact and social channels updated successfully!');
     }
 }
 

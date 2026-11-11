@@ -26,7 +26,7 @@ class ContactReplyMail extends Mailable
         $this->inquiry = $inquiry;
         $this->replyMessage = $replyMessage;
         $settings = WebsiteSetting::current();
-        $this->brandname = $settings->brandname ?? 'AttendEase Pro';
+        $this->brandname = $settings->brandname ?? config('app.name');
     }
 
     /**

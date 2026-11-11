@@ -21,6 +21,11 @@ import {
     AlertCircle,
     Palette,
     Upload,
+    Phone,
+    MessageCircle,
+    Facebook,
+    Youtube,
+    Share2,
 } from 'lucide-react';
 import { showSuccess, showError, showToast } from '@/lib/swal';
 import ImageUploadPreview from '@/components/image-upload-preview';
@@ -54,9 +59,15 @@ interface Props {
         payment_due_day: number;
         default_monthly_fee: number;
     };
+    contactSettings?: {
+        whatsapp_number: string | null;
+        contact_number: string | null;
+        facebook_url: string | null;
+        youtube_url: string | null;
+    };
 }
 
-export default function SuperAdminProfile({ superAdmin, branding, billingSettings }: Props) {
+export default function SuperAdminProfile({ superAdmin, branding, billingSettings, contactSettings }: Props) {
     const [otpRequested, setOtpRequested] = useState(false);
     const [otpLoading, setOtpLoading] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -65,7 +76,7 @@ export default function SuperAdminProfile({ superAdmin, branding, billingSetting
 
     // Form 1: Platform Branding & Identity form (Exclusive to Super Admin)
     const brandingForm = useForm({
-        brandname: branding?.brandname || 'AttendEase Pro',
+        brandname: branding?.brandname || '',
         logo: null as File | null,
         favicon: null as File | null,
     });
@@ -76,6 +87,23 @@ export default function SuperAdminProfile({ superAdmin, branding, billingSetting
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => showToast('Platform branding & identity updated successfully!', 'success'),
+            onError: (err: any) => showError('Validation Error', Object.values(err)[0] as string),
+        });
+    };
+
+    // Form 1.5: Official Contact & Social Channels Form
+    const contactForm = useForm({
+        whatsapp_number: contactSettings?.whatsapp_number || '',
+        contact_number: contactSettings?.contact_number || '',
+        facebook_url: contactSettings?.facebook_url || '',
+        youtube_url: contactSettings?.youtube_url || '',
+    });
+
+    const handleContactSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        contactForm.post('/super-admin/settings/contact-channels', {
+            preserveScroll: true,
+            onSuccess: () => showToast('Official contact channels and social links updated!', 'success'),
             onError: (err: any) => showError('Validation Error', Object.values(err)[0] as string),
         });
     };
@@ -205,7 +233,7 @@ export default function SuperAdminProfile({ superAdmin, branding, billingSetting
                             required
                             value={brandingForm.data.brandname}
                             onChange={(e) => brandingForm.setData('brandname', e.target.value)}
-                            placeholder="e.g. AttendEase Pro"
+                            placeholder="e.g. Attendance System"
                             className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
                         />
                         {brandingForm.errors.brandname && (
@@ -247,6 +275,120 @@ export default function SuperAdminProfile({ superAdmin, branding, billingSetting
                         >
                             <Upload className="h-4 w-4" />
                             <span>{brandingForm.processing ? 'Saving Branding...' : 'Save Branding & Identity'}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* Official Contact & Social Channels (Displayed on /contact page) */}
+            <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        <Share2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Official Contact & Social Channels</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Configure your direct WhatsApp, contact phone, Facebook page, and YouTube channel. These will be highlighted on the public Contact page (<span className="font-mono text-purple-600 dark:text-purple-400">/contact</span>).
+                        </p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleContactSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* WhatsApp Number */}
+                        <div className="space-y-1.5 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/60">
+                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>WhatsApp Contact Number</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={contactForm.data.whatsapp_number}
+                                onChange={(e) => contactForm.setData('whatsapp_number', e.target.value)}
+                                placeholder="e.g. +8801700000000 or 01700000000"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                            />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Visitors can click on the contact page to start a direct WhatsApp chat.
+                            </p>
+                            {contactForm.errors.whatsapp_number && (
+                                <p className="text-rose-500 text-xs">{contactForm.errors.whatsapp_number}</p>
+                            )}
+                        </div>
+
+                        {/* Phone / Helpline Number */}
+                        <div className="space-y-1.5 p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/60">
+                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <span>Direct Helpline / Contact Phone</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={contactForm.data.contact_number}
+                                onChange={(e) => contactForm.setData('contact_number', e.target.value)}
+                                placeholder="e.g. +8801800000000 or 01800000000"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                            />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Direct calling phone number displayed on the contact page header.
+                            </p>
+                            {contactForm.errors.contact_number && (
+                                <p className="text-rose-500 text-xs">{contactForm.errors.contact_number}</p>
+                            )}
+                        </div>
+
+                        {/* Facebook Page URL */}
+                        <div className="space-y-1.5 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-800/60">
+                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Facebook className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                <span>Official Facebook Page URL</span>
+                            </label>
+                            <input
+                                type="url"
+                                value={contactForm.data.facebook_url}
+                                onChange={(e) => contactForm.setData('facebook_url', e.target.value)}
+                                placeholder="https://facebook.com/yourbrand"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Direct link to your company or product Facebook community/page.
+                            </p>
+                            {contactForm.errors.facebook_url && (
+                                <p className="text-rose-500 text-xs">{contactForm.errors.facebook_url}</p>
+                            )}
+                        </div>
+
+                        {/* YouTube Channel URL */}
+                        <div className="space-y-1.5 p-4 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-800/60">
+                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Youtube className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                                <span>Official YouTube Channel URL</span>
+                            </label>
+                            <input
+                                type="url"
+                                value={contactForm.data.youtube_url}
+                                onChange={(e) => contactForm.setData('youtube_url', e.target.value)}
+                                placeholder="https://youtube.com/@yourbrand or demo playlist"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-rose-500"
+                            />
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Link to product demo videos, tutorials, or company YouTube channel.
+                            </p>
+                            {contactForm.errors.youtube_url && (
+                                <p className="text-rose-500 text-xs">{contactForm.errors.youtube_url}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={contactForm.processing}
+                            className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                        >
+                            <Share2 className="h-4 w-4" />
+                            <span>{contactForm.processing ? 'Saving Channels...' : 'Save Contact & Social Channels'}</span>
                         </button>
                     </div>
                 </form>
@@ -672,7 +814,7 @@ export default function SuperAdminProfile({ superAdmin, branding, billingSetting
                                     type="text"
                                     value={billingForm.data.bank_account_name}
                                     onChange={(e) => billingForm.setData('bank_account_name', e.target.value)}
-                                    placeholder="e.g. AttendEase Ltd"
+                                    placeholder="e.g. Platform Ltd"
                                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 />
                             </div>

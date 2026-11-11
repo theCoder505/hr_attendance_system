@@ -7,20 +7,13 @@ import {
     Search,
     Edit2,
     Trash2,
-    Users,
-    Building2,
-    HardDrive,
-    Shield,
     X,
-    CheckCircle2,
     ArrowUpRight,
-    Lock,
     Mail,
-    Sparkles,
     Eye,
     EyeOff,
 } from 'lucide-react';
-import { showConfirm, showSuccess, showError, showToast } from '@/lib/swal';
+import { showConfirm, showSuccess, showError } from '@/lib/swal';
 
 interface StoreItem {
     id: number;
@@ -76,7 +69,7 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: '',
         password: '',
         max_outlets: 5,
-        max_storage_mb: 500,
+        max_storage_mb: 100,
         is_lifetime_free: false,
         monthly_fee: 500,
         session_time: 30,
@@ -84,7 +77,17 @@ export default function StoresIndex({ stores, filters }: Props) {
     });
 
     // Edit Form
-    const editForm = useForm({
+    const editForm = useForm<{
+        name: string;
+        email: string;
+        password: string;
+        max_outlets: number;
+        max_storage_mb: number;
+        is_lifetime_free: boolean;
+        monthly_fee: number;
+        session_time: number;
+        two_factor_enabled: boolean;
+    }>({
         name: '',
         email: '',
         password: '',
@@ -648,13 +651,13 @@ export default function StoresIndex({ stores, filters }: Props) {
                                         type="number"
                                         min={10}
                                         max={102400}
-                                        step={50}
+                                        step={5}
                                         required
                                         value={editForm.data.max_storage_mb}
-                                        onChange={(e) => editForm.setData('max_storage_mb', parseInt(e.target.value) || 500)}
+                                        onChange={(e) => editForm.setData('max_storage_mb', parseInt(e.target.value) || 100)}
                                         className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                     />
-                                    <p className="text-[10px] text-slate-500">e.g. 500, 1024, 2048</p>
+                                    <p className="text-[10px] text-slate-500">e.g. 50, 100, 500</p>
                                     {editForm.errors.max_storage_mb && <p className="text-xs text-rose-500">{editForm.errors.max_storage_mb}</p>}
                                 </div>
 

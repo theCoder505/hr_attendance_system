@@ -10,7 +10,7 @@ interface Props {
 export default function StoreUserManualPage({ pdfUrl }: Props) {
     return (
         <AdminLayout>
-            <Head title="Store User Manual & Guide - AttendEase" />
+            <Head title="Store User Manual & Guide" />
 
             <div className="space-y-4 max-w-7xl mx-auto pb-8">
                 {/* Header card */}

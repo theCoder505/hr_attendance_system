@@ -23,7 +23,7 @@ class ContactOtpMail extends Mailable
     {
         $this->otp = $otp;
         $settings = WebsiteSetting::current();
-        $this->brandname = $settings->brandname ?? 'AttendEase Pro';
+        $this->brandname = $settings->brandname ?? config('app.name');
     }
 
     /**

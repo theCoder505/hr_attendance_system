@@ -24,6 +24,10 @@ class PlatformSetting extends Model
         'bank_enabled',
         'payment_due_day',
         'default_monthly_fee',
+        'whatsapp_number',
+        'contact_number',
+        'facebook_url',
+        'youtube_url',
         'user_manual_content',
         'user_manual_pdf_path',
     ];

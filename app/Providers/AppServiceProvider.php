@@ -37,5 +37,17 @@ class AppServiceProvider extends ServiceProvider
                 @unlink(public_path('hot'));
             }
         }
+
+        // Dynamically override application name with Super Admin configured brandname
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('website_settings')) {
+                $global = \App\Models\WebsiteSetting::current();
+                if ($global && ! empty($global->brandname)) {
+                    config(['app.name' => $global->brandname]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently ignore during initial migrations
+        }
     }
 }

@@ -50,6 +50,7 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
         Route::get('/settings', [SuperAdminProfileController::class, 'index'])->name('profile.index');
         Route::post('/settings', [SuperAdminProfileController::class, 'updateProfile'])->name('profile.update');
         Route::post('/settings/branding', [SuperAdminProfileController::class, 'updateBranding'])->name('profile.branding');
+        Route::post('/settings/contact-channels', [SuperAdminProfileController::class, 'updateContactChannels'])->name('profile.contact');
         Route::post('/settings/billing', [SuperAdminProfileController::class, 'updateBillingSettings'])->name('profile.billing');
         Route::post('/settings/credentials/otp', [SuperAdminProfileController::class, 'requestCredentialsOtp'])->name('profile.credentials.otp');
         Route::post('/settings/credentials', [SuperAdminProfileController::class, 'updateCredentials'])->name('profile.credentials');

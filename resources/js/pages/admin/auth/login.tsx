@@ -68,7 +68,7 @@ export default function AdminLogin({ brandname, logo }: Props) {
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
                                     required
-                                    placeholder="Admin Email Address"
+                                    placeholder="Store Email Address"
                                     className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all outline-none"
                                 />
                             </div>
@@ -85,7 +85,7 @@ export default function AdminLogin({ brandname, logo }: Props) {
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     required
-                                    placeholder="Admin Password"
+                                    placeholder="Store Password"
                                     className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-10 pr-11 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all outline-none"
                                 />
                                 <button

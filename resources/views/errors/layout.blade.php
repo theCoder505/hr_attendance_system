@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
         $settings = \App\Models\WebsiteSetting::current();
-        $brandname = $settings->brandname ?? config('app.name', 'AttendEase Pro');
+        $brandname = $settings->brandname ?? config('app.name');
         $faviconUrl = !empty($settings->favicon) ? asset('storage/' . $settings->favicon) : asset('favicon.ico');
         $logoUrl = !empty($settings->logo) ? asset('storage/' . $settings->logo) : null;
     @endphp

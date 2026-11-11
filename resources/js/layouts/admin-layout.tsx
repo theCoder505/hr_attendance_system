@@ -151,7 +151,7 @@ export default function AdminLayout({ children, title }: Props) {
         },
     ];
 
-    const brandname = settings?.brandname || 'AttendEase Pro';
+    const brandname = settings?.brandname || name || 'Attendance';
     const logoVersion = settings?.updated_at ? `?v=${encodeURIComponent(settings.updated_at)}` : '';
     const logoUrl = settings?.logo ? `/storage/${settings.logo}${logoVersion}` : null;
     const faviconUrl = settings?.favicon ? `/storage/${settings.favicon}${logoVersion}` : null;
