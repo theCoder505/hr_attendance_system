@@ -16,6 +16,10 @@ import {
     PanelLeftOpen,
     ChevronLeft,
     ChevronRight,
+    CreditCard,
+    HelpCircle,
+    Store,
+    AlertOctagon,
 } from 'lucide-react';
 import { showSuccess, showError, showWarning, showToast } from '@/lib/swal';
 import Swal from 'sweetalert2';
@@ -108,7 +112,7 @@ export default function AdminLayout({ children, title }: Props) {
 
     const navItems = [
         {
-            label: 'Dashboard & Calendar',
+            label: 'Dashboard & Shifts',
             href: '/store/dashboard',
             icon: Calendar,
             active: currentRoute.includes('/store/dashboard') || currentRoute === '/store' || currentRoute === '/store/' || currentRoute.includes('/administration-control'),
@@ -125,11 +129,25 @@ export default function AdminLayout({ children, title }: Props) {
             icon: FileSpreadsheet,
             active: currentRoute.includes('/store/reports') || currentRoute.includes('/administration-control/reports'),
         },
+        ...(!auth?.admin?.is_lifetime_free ? [
+            {
+                label: 'Invoices & Billing',
+                href: '/store/invoices',
+                icon: CreditCard,
+                active: currentRoute.includes('/store/invoices'),
+            }
+        ] : []),
         {
-            label: 'Settings & Security',
+            label: 'Store Settings',
             href: '/store/settings',
             icon: Settings,
             active: currentRoute.includes('/store/settings') || currentRoute.includes('/administration-control/settings'),
+        },
+        {
+            label: 'User Manual',
+            href: '/store/user-manual',
+            icon: HelpCircle,
+            active: currentRoute.includes('/store/user-manual'),
         },
     ];
 
@@ -405,6 +423,31 @@ export default function AdminLayout({ children, title }: Props) {
                         </header>
 
                         <div className="flex-1 p-4 md:p-6 lg:p-8 pb-24 sm:pb-28 lg:pb-8 max-w-9xl w-full mx-auto">
+                            {auth?.admin?.is_suspended && (
+                                <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-rose-900 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-start sm:items-center gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-rose-100 dark:bg-rose-900/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 font-bold">
+                                            <AlertOctagon className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                                                Attendance Service Suspended &bull; Subscription Overdue
+                                            </h4>
+                                            <p className="text-xs text-rose-800 dark:text-rose-300/90 mt-0.5">
+                                                The monthly attendance service is currently suspended due to an unpaid invoice past the deadline. Employees cannot record attendance until cleared.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        href="/store/invoices"
+                                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all shrink-0 cursor-pointer"
+                                    >
+                                        <CreditCard className="h-3.5 w-3.5" />
+                                        <span>View & Pay Invoice</span>
+                                    </Link>
+                                </div>
+                            )}
+
                             {children}
                         </div>
                     </main>

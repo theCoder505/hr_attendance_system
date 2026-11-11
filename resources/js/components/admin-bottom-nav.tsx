@@ -6,6 +6,7 @@ import {
     Settings,
     Clock,
     LogOut,
+    CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,7 @@ interface AdminBottomNavProps {
     onLogout: () => void;
 }
 
-export default function AdminBottomNav({ currentRoute, onLogout }: AdminBottomNavProps) {
+export default function AdminBottomNav({ currentRoute, auth, onLogout }: AdminBottomNavProps) {
     const items = [
         {
             key: 'dashboard',
@@ -35,6 +36,15 @@ export default function AdminBottomNav({ currentRoute, onLogout }: AdminBottomNa
             icon: Users,
             active: currentRoute.includes('/store/employees') || currentRoute.includes('/administration-control/employees'),
         },
+        ...(!auth?.admin?.is_lifetime_free ? [
+            {
+                key: 'invoices',
+                label: 'Invoices',
+                href: '/store/invoices',
+                icon: CreditCard,
+                active: currentRoute.includes('/store/invoices'),
+            }
+        ] : []),
         {
             key: 'report',
             label: 'Report',

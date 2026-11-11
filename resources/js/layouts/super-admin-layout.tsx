@@ -8,9 +8,10 @@ import {
     LogOut,
     Shield,
     HardDrive,
-    Users,
     Menu,
     X,
+    CreditCard,
+    BookOpen,
 } from 'lucide-react';
 import { showSuccess, showError, showWarning, showToast } from '@/lib/swal';
 import ThemeToggle from '@/components/theme-toggle';
@@ -59,10 +60,22 @@ export default function SuperAdminLayout({ title, children }: Props) {
             active: currentRoute.includes('/super-admin/stores'),
         },
         {
+            label: 'Invoices & Billing',
+            href: '/super-admin/invoices',
+            icon: CreditCard,
+            active: currentRoute.includes('/super-admin/invoices'),
+        },
+        {
             label: 'Contact Inquiries',
             href: '/super-admin/inquiries',
             icon: MessageSquare,
             active: currentRoute.includes('/super-admin/inquiries'),
+        },
+        {
+            label: 'User Manual CMS',
+            href: '/super-admin/user-manual',
+            icon: BookOpen,
+            active: currentRoute.includes('/super-admin/user-manual'),
         },
         {
             label: 'Super Admin Profile',

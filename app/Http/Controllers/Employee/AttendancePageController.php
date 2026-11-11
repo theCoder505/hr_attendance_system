@@ -32,6 +32,23 @@ class AttendancePageController extends Controller
     }
 
     /**
+     * Display the dedicated Service Suspended page for employees.
+     */
+    public function suspended(Request $request): Response
+    {
+        $settings = WebsiteSetting::current();
+        $storeId = $request->query('store_id');
+        $store = $storeId ? \App\Models\Admin::where('store_id', $storeId)->first() : null;
+
+        return Inertia::render('attendance/suspended', [
+            'brandname' => $settings->brandname ?? 'AttendEase',
+            'logo' => $settings->logo,
+            'storeName' => $store?->name,
+            'storeId' => $store?->store_id,
+        ]);
+    }
+
+    /**
      * Get real-time status of employee device, current day attendance, and month stats.
      */
     public function status(Request $request, AttendanceService $attendanceService): JsonResponse

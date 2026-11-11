@@ -1,5 +1,6 @@
 import ThemeToggle from '@/components/theme-toggle';
 import { showConfirm, showError, showSuccess } from '@/lib/swal';
+import { formatMinutes } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
 import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Wifi, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -74,6 +75,10 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             const data = await res.json();
 
             if (!res.ok) {
+                if (data.code === 'STORE_SUSPENDED' || res.status === 402) {
+                    window.location.href = `/attendance/suspended?store_id=${data.store_id || ''}`;
+                    return;
+                }
                 if (data.code === 'OFFICE_NETWORK_REQUIRED') {
                     setNetworkError(data.message || 'Please connect to the designated outlet network');
                     showError('Office Network Required', data.message || 'Please connect to the designated outlet WiFi to access attendance functions.');
@@ -189,6 +194,10 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             });
 
             const data = await res.json();
+            if (data.code === 'STORE_SUSPENDED' || res.status === 402) {
+                window.location.href = `/attendance/suspended?store_id=${data.store_id || ''}`;
+                return;
+            }
             if (res.ok && data.success) {
                 showSuccess('Checked In Successfully!', data.message);
                 fetchStatus();
@@ -247,6 +256,10 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             });
 
             const data = await res.json();
+            if (data.code === 'STORE_SUSPENDED' || res.status === 402) {
+                window.location.href = `/attendance/suspended?store_id=${data.store_id || ''}`;
+                return;
+            }
             if (res.ok && data.success) {
                 showSuccess('Checked Out Successfully!', data.message);
                 fetchStatus();
@@ -470,7 +483,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                                 .
                                                 {activeAttendance?.late_minutes > 0 && (
                                                     <span className="ml-1.5 text-amber-600 dark:text-amber-400">
-                                                        ({activeAttendance.late_minutes}m late)
+                                                        ({formatMinutes(activeAttendance.late_minutes)} late)
                                                     </span>
                                                 )}
                                             </>
@@ -552,9 +565,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                     </div>
 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Late Minutes</span>
+                                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Late Time</span>
                                         <div className="mt-1 text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                                            {monthlyStats.late_total_minutes}{' '}
+                                            {formatMinutes(monthlyStats.late_total_minutes)}{' '}
                                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                                                 ({monthlyStats.late_count} times)
                                             </span>
@@ -564,7 +577,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
                                         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Early Leaves</span>
                                         <div className="mt-1 text-2xl font-extrabold text-orange-600 dark:text-orange-400">
-                                            {monthlyStats.early_leave_total_minutes}{' '}
+                                            {formatMinutes(monthlyStats.early_leave_total_minutes)}{' '}
                                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                                                 ({monthlyStats.early_leave_count} times)
                                             </span>
@@ -574,7 +587,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
                                         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Overtime Logged</span>
                                         <div className="mt-1 text-2xl font-extrabold text-violet-600 dark:text-violet-400">
-                                            {monthlyStats.overtime_total_minutes}{' '}
+                                            {formatMinutes(monthlyStats.overtime_total_minutes)}{' '}
                                             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                                                 ({monthlyStats.overtime_count} times)
                                             </span>
@@ -653,7 +666,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                                         <div className="min-w-30 text-center">
                                                             {rec.late_minutes > 0 ? (
                                                                 <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                                                    +{rec.late_minutes}m
+                                                                    +{formatMinutes(rec.late_minutes)}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-slate-400 dark:text-slate-500">—</span>
@@ -664,7 +677,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                                         <div className="min-w-30 text-center">
                                                             {rec.early_leave_minutes > 0 ? (
                                                                 <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                                                    -{rec.early_leave_minutes}m
+                                                                    -{formatMinutes(rec.early_leave_minutes)}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-slate-400 dark:text-slate-500">—</span>
@@ -675,7 +688,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                                         <div className="min-w-30 text-center">
                                                             {rec.overtime_minutes > 0 ? (
                                                                 <span className="font-semibold text-violet-600 dark:text-violet-400">
-                                                                    +{rec.overtime_minutes}m
+                                                                    +{formatMinutes(rec.overtime_minutes)}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-slate-400 dark:text-slate-500">—</span>
@@ -707,6 +720,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                     <div className="flex items-center gap-6">
                         <a href="/attendance" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                             Attendance Portal
+                        </a>
+                        <a href="/user-manual" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            User Manual
                         </a>
                         <a href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                             Contact & Inquiries

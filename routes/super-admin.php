@@ -3,8 +3,10 @@
 use App\Http\Controllers\SuperAdmin\AuthController as SuperAdminAuthController;
 use App\Http\Controllers\SuperAdmin\ContactInquiryController as SuperAdminInquiryController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\InvoiceController as SuperAdminInvoiceController;
 use App\Http\Controllers\SuperAdmin\ProfileController as SuperAdminProfileController;
 use App\Http\Controllers\SuperAdmin\StoreController as SuperAdminStoreController;
+use App\Http\Controllers\SuperAdmin\UserManualController as SuperAdminUserManualController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,11 +46,21 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
         Route::post('/inquiries/{inquiry}/reply', [SuperAdminInquiryController::class, 'reply'])->name('inquiries.reply');
         Route::delete('/inquiries/{inquiry}', [SuperAdminInquiryController::class, 'destroy'])->name('inquiries.destroy');
 
-        // Profile & Credential Changes with OTP Verification
+        // Profile, Billing Accounts & Credential Changes with OTP Verification
         Route::get('/profile', [SuperAdminProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile', [SuperAdminProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/profile/billing', [SuperAdminProfileController::class, 'updateBillingSettings'])->name('profile.billing');
         Route::post('/profile/credentials/otp', [SuperAdminProfileController::class, 'requestCredentialsOtp'])->name('profile.credentials.otp');
         Route::post('/profile/credentials', [SuperAdminProfileController::class, 'updateCredentials'])->name('profile.credentials');
+
+        // Store Invoices & Verification
+        Route::get('/invoices', [SuperAdminInvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('/invoices/{invoice}/verify', [SuperAdminInvoiceController::class, 'verify'])->name('invoices.verify');
+        Route::post('/invoices/{invoice}/reject', [SuperAdminInvoiceController::class, 'reject'])->name('invoices.reject');
+
+        // User Manual Dynamic CMS
+        Route::get('/user-manual', [SuperAdminUserManualController::class, 'index'])->name('user-manual.index');
+        Route::post('/user-manual', [SuperAdminUserManualController::class, 'update'])->name('user-manual.update');
     });
 });
 

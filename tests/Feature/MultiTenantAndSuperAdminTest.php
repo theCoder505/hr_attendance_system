@@ -190,6 +190,7 @@ class MultiTenantAndSuperAdminTest extends TestCase
             'password' => Hash::make('Password@123'),
             'store_id' => 'STR-ATTEND',
             'max_outlets' => 5,
+            'is_lifetime_free' => true,
         ]);
 
         $outlet = $admin->outlets()->create(['name' => 'HQ Outlet', 'wifi_ip' => '127.0.0.1']);
@@ -351,5 +352,180 @@ class MultiTenantAndSuperAdminTest extends TestCase
             'email' => 'admin@super.com',
             'password' => Hash::make('SuperAdmin@1234'),
         ]);
+    }
+
+    /**
+     * Test billing settings configuration, invoice generation, payment submission, and verification.
+     */
+    public function test_billing_settings_invoices_and_verification_flow()
+    {
+        $superAdmin = SuperAdmin::firstOrCreate(
+            ['email' => 'admin@super.com'],
+            [
+                'name' => 'Platform Super Admin',
+                'password' => Hash::make('SuperAdmin@1234'),
+            ]
+        );
+
+        // 1. Super Admin configures billing receiving details and payment due day
+        $this->actingAs($superAdmin, 'super_admin')->post('/super-admin/profile/billing', [
+            'payment_due_day' => 10,
+            'default_monthly_fee' => 750.00,
+            'bkash_number' => '01711223344',
+            'bkash_type' => 'Merchant',
+            'bkash_enabled' => true,
+            'nagad_number' => '01811223344',
+            'nagad_type' => 'Personal',
+            'nagad_enabled' => false, // test turning off Nagad
+            'bank_name' => 'City Bank',
+            'bank_account_name' => 'AttendEase Platform Ltd',
+            'bank_account_number' => '11029384756',
+            'bank_branch' => 'Gulshan',
+            'bank_routing' => '225271829',
+            'bank_enabled' => true,
+        ])->assertSessionHas('success');
+
+        $this->assertDatabaseHas('platform_settings', [
+            'payment_due_day' => 10,
+            'bkash_number' => '01711223344',
+            'bkash_enabled' => true,
+            'nagad_enabled' => false,
+            'bank_enabled' => true,
+            'bank_name' => 'City Bank',
+        ]);
+
+        // 2. Create paid store and test invoice auto-generation
+        $store = Admin::create([
+            'name' => 'Downtown Store',
+            'username' => 'downtown_store',
+            'email' => 'downtown@store.com',
+            'password' => Hash::make('StorePass123!'),
+            'status' => 'active',
+            'is_lifetime_free' => false,
+            'monthly_fee' => 750.00,
+        ]);
+
+        $invoice = $store->getOrCreateCurrentInvoice();
+        $this->assertNotNull($invoice);
+        $this->assertEquals('unpaid', $invoice->status);
+        $this->assertEquals(750.00, (float) $invoice->amount);
+
+        // 3. Store owner submits payment details with exact paid amount
+        $this->actingAs($store, 'admin')->post("/store/invoices/{$invoice->id}/pay", [
+            'paid_amount' => 750.00,
+            'payment_method' => 'bkash',
+            'transaction_id' => 'TRX99887766',
+            'payment_time' => '2026-11-05 14:30:00',
+            'payment_note' => 'Sent from 01712345678',
+        ])->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertEquals('pending_verification', $invoice->status);
+        $this->assertEquals(750.00, (float) $invoice->paid_amount);
+        $this->assertEquals('TRX99887766', $invoice->transaction_id);
+
+        // 4. Super Admin verifies and accepts payment
+        $this->actingAs($superAdmin, 'super_admin')
+            ->post("/super-admin/invoices/{$invoice->id}/verify")
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertEquals('paid', $invoice->status);
+        $this->assertNotNull($invoice->verified_at);
+        $this->assertFalse($store->fresh()->isSuspended());
+
+        // 5. Rejection flow test
+        $invoice->update(['status' => 'pending_verification']);
+        $this->actingAs($superAdmin, 'super_admin')->post("/super-admin/invoices/{$invoice->id}/reject", [
+            'rejection_reason' => 'TrxID could not be verified in bKash merchant statement.',
+        ])->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertEquals('rejected', $invoice->status);
+        $this->assertEquals('TrxID could not be verified in bKash merchant statement.', $invoice->rejection_reason);
+    }
+
+    /**
+     * Test lifetime free store exemption from suspension and invoices.
+     */
+    public function test_lifetime_free_store_is_never_suspended()
+    {
+        $freeStore = Admin::create([
+            'name' => 'Community Free Store',
+            'username' => 'free_store',
+            'email' => 'free@store.com',
+            'password' => Hash::make('StorePass123!'),
+            'status' => 'active',
+            'is_lifetime_free' => true,
+        ]);
+
+        // Even past due date with no invoices, lifetime free store is not suspended
+        $this->assertFalse($freeStore->isSuspended());
+
+        // Accessing /store/invoices redirects with notice
+        $this->actingAs($freeStore, 'admin')
+            ->get('/store/invoices')
+            ->assertRedirect('/store/dashboard');
+    }
+
+    /**
+     * Test User Manual PDF viewing and complete store deletion cascade.
+     */
+    public function test_user_manual_pdf_view_and_store_deletion_cascade()
+    {
+        $superAdmin = SuperAdmin::firstOrCreate(
+            ['email' => 'admin@super.com'],
+            [
+                'name' => 'Platform Super Admin',
+                'password' => Hash::make('SuperAdmin@1234'),
+            ]
+        );
+
+        // 1. Public user manual page returns 200 with PDF url
+        $response = $this->get('/user-manual');
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->has('pdfUrl'));
+
+        // 2. Store owner user manual page returns 200 with PDF url
+        $store = Admin::create([
+            'name' => 'Outlet Store Alpha',
+            'username' => 'outlet_alpha',
+            'email' => 'alpha@store.com',
+            'password' => Hash::make('StorePass123!'),
+            'status' => 'active',
+        ]);
+
+        $outlet = $store->outlets()->create(['name' => 'Main Outlet', 'wifi_ip' => '127.0.0.1']);
+        $employee = $store->employees()->create([
+            'name' => 'Test Employee',
+            'phone' => '01700000000',
+            'role' => 'Sales',
+            'outlet_id' => $outlet->id,
+            'joining_date' => now()->toDateString(),
+        ]);
+        $store->attendances()->create([
+            'employee_id' => $employee->id,
+            'date' => now()->toDateString(),
+            'check_in_at' => now(),
+            'late_minutes' => 0,
+        ]);
+        $invoice = $store->getOrCreateCurrentInvoice();
+
+        $this->actingAs($store, 'admin')
+            ->get('/store/user-manual')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('pdfUrl'));
+
+        // 3. Super Admin permanently deletes the store
+        $this->actingAs($superAdmin, 'super_admin')
+            ->delete("/super-admin/stores/{$store->id}")
+            ->assertSessionHas('success');
+
+        // Verify total cascade wipe
+        $this->assertDatabaseMissing('admins', ['id' => $store->id]);
+        $this->assertDatabaseMissing('outlets', ['id' => $outlet->id]);
+        $this->assertDatabaseMissing('employees', ['id' => $employee->id]);
+        $this->assertDatabaseMissing('attendances', ['employee_id' => $employee->id]);
+        $this->assertDatabaseMissing('store_invoices', ['id' => $invoice->id]);
     }
 }

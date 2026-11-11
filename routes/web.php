@@ -4,12 +4,14 @@ use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController as AdminEmployeeController;
+use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Admin\OutletController as AdminOutletController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Employee\AttendancePageController;
 use App\Http\Controllers\Employee\VerificationController;
+use App\Http\Controllers\UserManualController;
 use App\Models\WebsiteSetting;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -98,6 +100,7 @@ Route::get('/verify/{token}', [VerificationController::class, 'verify'])->name('
 
 // Public attendance page
 Route::get('/attendance', [AttendancePageController::class, 'index'])->name('attendance.index');
+Route::get('/attendance/suspended', [AttendancePageController::class, 'suspended'])->name('attendance.suspended');
 
 // Protected attendance action endpoints (Office IP + Registered Device Token)
 Route::prefix('attendance')->middleware(['verify.device', 'office.network'])->group(function () {
@@ -106,6 +109,9 @@ Route::prefix('attendance')->middleware(['verify.device', 'office.network'])->gr
     Route::post('/check-out', [AttendancePageController::class, 'checkOut'])->name('attendance.check-out');
     Route::get('/history', [AttendancePageController::class, 'history'])->name('attendance.history');
 });
+
+// Public User Manual page
+Route::get('/user-manual', [UserManualController::class, 'publicIndex'])->name('user-manual.public');
 
 /*
 |--------------------------------------------------------------------------
@@ -169,20 +175,15 @@ Route::prefix('store')->name('admin.')->group(function () {
         Route::post('/outlets', [AdminOutletController::class, 'store'])->name('outlets.store');
         Route::put('/outlets/{outlet}', [AdminOutletController::class, 'update'])->name('outlets.update');
         Route::delete('/outlets/{outlet}', [AdminOutletController::class, 'destroy'])->name('outlets.destroy');
+
+        // Store Invoices & Subscription Billing (Visible if NOT lifetime free)
+        Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('/invoices/{invoice}/pay', [AdminInvoiceController::class, 'submitPayment'])->name('invoices.pay');
+
+        // Store User Manual
+        Route::get('/user-manual', [UserManualController::class, 'storeIndex'])->name('user-manual.store');
     });
 });
-
-// Backward-compatibility redirect from /administration-control to /store
-Route::get('/administration-control/{any?}', function ($any = null) {
-    return redirect('/store/'.($any ? $any : 'login'));
-})->where('any', '.*');
-
-/*
-|--------------------------------------------------------------------------
-| Super Admin Portal Routes
-|--------------------------------------------------------------------------
-*/
-require __DIR__.'/super-admin.php';
 
 // Backward-compatibility redirect from /administration-control to /store
 Route::get('/administration-control/{any?}', function ($any = null) {

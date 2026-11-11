@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SuperAdminOtpMail;
+use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,7 @@ class ProfileController extends Controller
     public function index(): Response
     {
         $superAdmin = Auth::guard('super_admin')->user();
+        $platform = PlatformSetting::instance();
 
         return Inertia::render('super-admin/profile/index', [
             'superAdmin' => [
@@ -30,7 +32,66 @@ class ProfileController extends Controller
                 'session_time' => $superAdmin->session_time,
                 'created_at' => $superAdmin->created_at?->toFormattedDateString(),
             ],
+            'billingSettings' => [
+                'bkash_number' => $platform->bkash_number,
+                'bkash_type' => $platform->bkash_type,
+                'bkash_enabled' => (bool) $platform->bkash_enabled,
+                'nagad_number' => $platform->nagad_number,
+                'nagad_type' => $platform->nagad_type,
+                'nagad_enabled' => (bool) $platform->nagad_enabled,
+                'bank_name' => $platform->bank_name,
+                'bank_account_name' => $platform->bank_account_name,
+                'bank_account_number' => $platform->bank_account_number,
+                'bank_branch' => $platform->bank_branch,
+                'bank_routing' => $platform->bank_routing,
+                'bank_enabled' => (bool) $platform->bank_enabled,
+                'payment_due_day' => (int) ($platform->payment_due_day ?: 7),
+                'default_monthly_fee' => (float) ($platform->default_monthly_fee ?: 500.00),
+            ],
         ]);
+    }
+
+    /**
+     * Update payment receiving details & monthly subscription deadline.
+     */
+    public function updateBillingSettings(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'bkash_number' => ['nullable', 'string', 'max:50'],
+            'bkash_type' => ['required', 'string', 'in:Personal,Merchant,Agent'],
+            'bkash_enabled' => ['boolean'],
+            'nagad_number' => ['nullable', 'string', 'max:50'],
+            'nagad_type' => ['required', 'string', 'in:Personal,Merchant,Agent'],
+            'nagad_enabled' => ['boolean'],
+            'bank_name' => ['nullable', 'string', 'max:100'],
+            'bank_account_name' => ['nullable', 'string', 'max:100'],
+            'bank_account_number' => ['nullable', 'string', 'max:100'],
+            'bank_branch' => ['nullable', 'string', 'max:100'],
+            'bank_routing' => ['nullable', 'string', 'max:50'],
+            'bank_enabled' => ['boolean'],
+            'payment_due_day' => ['required', 'integer', 'min:1', 'max:31'],
+            'default_monthly_fee' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $platform = PlatformSetting::instance();
+        $platform->update([
+            'bkash_number' => $request->bkash_number,
+            'bkash_type' => $request->bkash_type,
+            'bkash_enabled' => $request->boolean('bkash_enabled'),
+            'nagad_number' => $request->nagad_number,
+            'nagad_type' => $request->nagad_type,
+            'nagad_enabled' => $request->boolean('nagad_enabled'),
+            'bank_name' => $request->bank_name,
+            'bank_account_name' => $request->bank_account_name,
+            'bank_account_number' => $request->bank_account_number,
+            'bank_branch' => $request->bank_branch,
+            'bank_routing' => $request->bank_routing,
+            'bank_enabled' => $request->boolean('bank_enabled'),
+            'payment_due_day' => (int) $request->payment_due_day,
+            'default_monthly_fee' => (float) $request->default_monthly_fee,
+        ]);
+
+        return back()->with('success', 'Platform billing receiving accounts & deadline settings updated successfully.');
     }
 
     /**

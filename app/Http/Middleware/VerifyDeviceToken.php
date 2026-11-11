@@ -68,6 +68,18 @@ class VerifyDeviceToken
             ], 403);
         }
 
+        // Check if Store Attendance Service is Suspended due to Overdue Monthly Subscription
+        if ($employee->admin && $employee->admin->isSuspended()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'STORE_SUSPENDED',
+                'message' => "Attendance service for store '{$employee->admin->name}' is suspended due to overdue subscription payment. Please contact your store administrator to clear dues.",
+                'store_name' => $employee->admin->name,
+                'store_id' => $employee->admin->store_id,
+                'redirect_url' => '/attendance/suspended',
+            ], 402);
+        }
+
         // Attach employee to request attributes for downstream use
         $request->attributes->set('employee', $employee);
 

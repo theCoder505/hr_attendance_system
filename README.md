@@ -11,23 +11,30 @@ Designed with clean architecture, strict tenant isolation, the **Service Pattern
 ### 1. Platform Super Admin Portal (`/super-admin/login`)
 * **Dedicated Authentication Guard**: Root administrator portal running on independent session state and security middleware (`super_admin` guard).
 * **Store Tenants CRUD**: Register store accounts with system auto-generated unique Store IDs (`store_id`, e.g. `STR-XXXXXX`), update credentials, and set **Maximum Outlets Quotas** (`max_outlets`).
+* **Subscription & Lifetime Free Control**: Configure custom monthly subscription fees per store owner (`monthly_fee`) or grant **Lifetime Free Access** (exempting them from all invoices and suspensions).
+* **Payment Receiving Channels & Deadline**: Configure receiving bKash (Personal/Merchant/Agent), Nagad, and Bank account details with independent On/Off toggles, and configure the monthly payment deadline day (1st to 31st, default 7th).
+* **Invoice Verification & Rejection**: Review payment submissions, verify with a single click, or reject with custom feedback displayed directly to the store owner so they can repay.
+* **Irreversible Termination & Complete Cascade Wipe**: Permanently terminate defaulting or delinquent store owners with an explicit multi-confirmation dialog that completely wipes all employees, outlets, attendance history, invoices, and physical files.
 * **Real-time Storage Consumption Tracking**: Calculates exact file storage consumed by each store (employee photos, PDF appointment letters, store logos, and favicons) from physical disk files.
 * **Store Employee Oversight**: Super Admin can inspect any store's employee roster, reset device bindings, or remove employees.
 * **Store Expansion Inquiries & Email Reply**: Inspect contact inquiries submitted from the website footer contact form, and send official branded email responses directly from the Super Admin panel.
 * **Profile Security via Email OTP**: Super Admin can change email and password only after validating a 6-digit verification code dispatched to their current email.
 
 ### 2. Store Owner Administration Portal (`/store/login`)
-* **Renamed Route Prefix**: Administrative surfaces are cleanly hosted under `/store/` (e.g. `/store/login`, `/store/dashboard`, `/store/employees`, `/store/reports`, `/store/settings`).
+* **Renamed Route Prefix**: Administrative surfaces are cleanly hosted under `/store/` (e.g. `/store/login`, `/store/dashboard`, `/store/employees`, `/store/invoices`, `/store/user-manual`, `/store/reports`, `/store/settings`).
 * **Strict Tenant Data Isolation**: Each store admin has their own outlets, employees, attendances, and settings. Store A's data never overlaps with Store B.
+* **Monthly Invoices & Payment Modal**: Clear monthly subscription invoices before the deadline day. Modal showcases active Super Admin payment receiving accounts (bKash, Nagad, Bank) with one-click copy and requires the store owner to report their paid amount and transaction ID.
+* **Automatic Service Suspension**: Unpaid stores past the deadline are suspended; employees cannot check in and are redirected to a dedicated `/attendance/suspended` alert page.
 * **Maximum Outlets Quota Enforcement**: Stores can add branches up to their Super Admin-assigned limit (`max_outlets`). Attempts to exceed quota are safely rejected.
 * **Two-Factor Email OTP Authentication**: Store login validates email and password, then dispatches a time-limited 6-digit OTP to the registered store email.
 * **Session Inactivity Timeout Middleware**: Automatic logout when an administrator is inactive for longer than their configured `session_time` (default: 30 minutes).
 * **Interactive Month Calendar & Day Inspector**: Fast date jump and search to view employee attendance for any selected date and filter by branch outlet.
-* **Manual Attendance Overrides**: Add or edit manual attendance records with automated recalculation of Late, Early Leave, and Overtime values (`is_manual = true`).
+* **Human-Readable Times**: Late, Early Leave, and Overtime logged in clear hours and minutes (e.g. `+4h 38m`).
 * **Monthly Attendance Reports & XLSX Export**: Monthly aggregation per employee with styled Microsoft Excel (`.xlsx`) export for all records or filtered by outlet/employee.
 
-### 3. Surface Website Contact Page (`/contact`)
-* **Accessible via Website Footer**: Links in public attendance footer allow prospective business owners to reach platform owners.
+### 3. Surface Website Contact & Embedded PDF User Manual
+* **Accessible via Website Footer**: Links in public attendance footer allow prospective business owners to reach platform owners (`/contact`) and read platform guidelines (`/user-manual`).
+* **Embedded PDF User Manual**: A standalone, secure PDF reader embedded on `/user-manual`, `/store/user-manual`, and `/super-admin/user-manual` with download and fullscreen support, without displaying any root credentials and explicitly outlining delinquency termination rights.
 * **Frontend Security Captcha**: Dynamic, distorted alphanumeric canvas captcha generated in frontend JavaScript with refresh capability.
 * **Email Verification with OTP**: User enters email and verifies ownership with a 6-digit verification code before the contact box can be submitted.
 * **Structured Inquiry Box**: Submits Company Name, Subject, Email, Phone, Total Outlets Needed, Average Staff per Outlet, and Message.

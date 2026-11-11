@@ -46,6 +46,7 @@
         "globals": "^15.14.0",
         "laravel-vite-plugin": "^1.0",
         "lucide-react": "^0.475.0",
+        "pdf-lib": "^1.17.1",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "sweetalert2": "^11.26.25",

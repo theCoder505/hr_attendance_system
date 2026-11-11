@@ -1,5 +1,6 @@
 import AdminLayout from '@/layouts/admin-layout';
 import { showConfirm } from '@/lib/swal';
+import { formatMinutes } from '@/lib/utils';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -182,7 +183,7 @@ export default function AdminDashboard({
 
     return (
         <AdminLayout title="Attendance Dashboard & Calendar">
-            <Head title="Admin Dashboard - Attendance Management" />
+            <Head title="Store Dashboard - Attendance Management" />
 
             {/* Outlet Tabs Navigation */}
             <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
@@ -533,17 +534,17 @@ export default function AdminDashboard({
                                                     <div className="flex flex-wrap justify-center gap-1">
                                                         {item.late_minutes > 0 && (
                                                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                                Late {item.late_minutes}m
+                                                                Late {formatMinutes(item.late_minutes)}
                                                             </span>
                                                         )}
                                                         {item.early_leave_minutes > 0 && (
                                                             <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-300">
-                                                                Early Leave {item.early_leave_minutes}m
+                                                                Early Leave {formatMinutes(item.early_leave_minutes)}
                                                             </span>
                                                         )}
                                                         {item.overtime_minutes > 0 && (
                                                             <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-300">
-                                                                OT {item.overtime_minutes}m
+                                                                OT {formatMinutes(item.overtime_minutes)}
                                                             </span>
                                                         )}
                                                         {item.late_minutes === 0 && item.early_leave_minutes === 0 && item.overtime_minutes === 0 && (

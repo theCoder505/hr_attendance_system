@@ -29,6 +29,9 @@ interface StoreItem {
     name: string;
     email: string;
     max_outlets: number;
+    is_lifetime_free: boolean;
+    monthly_fee: number;
+    is_suspended?: boolean;
     outlets_count: number;
     employees_count: number;
     storage_bytes: number;
@@ -65,6 +68,8 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: '',
         password: '',
         max_outlets: 5,
+        is_lifetime_free: false,
+        monthly_fee: 500,
         session_time: 30,
         two_factor_enabled: true,
     });
@@ -75,6 +80,8 @@ export default function StoresIndex({ stores, filters }: Props) {
         email: '',
         password: '',
         max_outlets: 5,
+        is_lifetime_free: false,
+        monthly_fee: 500,
         session_time: 30,
         two_factor_enabled: true,
     });
@@ -93,6 +100,8 @@ export default function StoresIndex({ stores, filters }: Props) {
             email: store.email,
             password: '',
             max_outlets: store.max_outlets,
+            is_lifetime_free: Boolean(store.is_lifetime_free),
+            monthly_fee: store.monthly_fee || 500,
             session_time: store.session_time || 30,
             two_factor_enabled: store.two_factor_enabled,
         });
@@ -134,16 +143,16 @@ export default function StoresIndex({ stores, filters }: Props) {
     // Delete Store
     const handleDeleteStore = async (store: StoreItem) => {
         const confirmed = await showConfirm(
-            `Delete Store "${store.name}"?`,
-            `⚠️ DANGER: Deleting this store will permanently wipe all its ${store.outlets_count} outlets, ${store.employees_count} employees, attendances, and stored files! This cannot be undone.`,
-            'Yes, Delete Store Permanently',
+            `Permanently Terminate & Delete "${store.name}"?`,
+            `⚠️ CRITICAL IRREVERSIBLE ACTION:\n\nDeleting this store owner will permanently and completely remove all associated records:\n• ${store.outlets_count} Outlets\n• ${store.employees_count} Employees & Biometric Devices\n• All Historical Attendance Logs\n• All Monthly Invoices & Billing Records\n• All Uploaded Files & Avatars (${store.storage_formatted})\n\nThis data cannot be recovered. Are you absolutely certain you want to proceed?`,
+            'Yes, Permanently Delete All Data',
             'warning'
         );
 
         if (confirmed) {
             router.delete(`/super-admin/stores/${store.id}`, {
                 onSuccess: () => {
-                    showSuccess('Store Deleted', `Store "${store.name}" and all associated data was removed.`);
+                    showSuccess('Store Terminated', `Store "${store.name}" and all associated employees, outlets, attendances, and storage files were permanently removed.`);
                 },
             });
         }
@@ -229,10 +238,24 @@ export default function StoresIndex({ stores, filters }: Props) {
                                         <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">
                                             {store.name}
                                         </h3>
-                                        <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                             <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800/60 px-2.5 py-0.5 rounded-lg">
                                                 {store.store_id || store.uid}
                                             </span>
+                                            {store.is_lifetime_free ? (
+                                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                                                    Lifetime Free
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/60">
+                                                    Paid ({store.monthly_fee} BDT)
+                                                </span>
+                                            )}
+                                            {store.is_suspended && !store.is_lifetime_free && (
+                                                <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-300 dark:border-rose-800 animate-pulse">
+                                                    Suspended
+                                                </span>
+                                            )}
                                             {store.two_factor_enabled ? (
                                                 <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
                                                     2FA On
@@ -413,7 +436,45 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 pt-2">
+                            {/* Billing & Lifetime Free Setting */}
+                            <div className="p-3.5 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <label htmlFor="create_lifetime_free" className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                                            Free for Lifetime Store
+                                        </label>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                            Exempts store from all monthly invoices, payments, and service suspensions.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        id="create_lifetime_free"
+                                        checked={createForm.data.is_lifetime_free}
+                                        onChange={(e) => createForm.setData('is_lifetime_free', e.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    />
+                                </div>
+
+                                {!createForm.data.is_lifetime_free && (
+                                    <div className="pt-2 border-t border-purple-100 dark:border-purple-900/40 space-y-1">
+                                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            Monthly Subscription Fee (BDT) <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            step="10"
+                                            required
+                                            value={createForm.data.monthly_fee}
+                                            onChange={(e) => createForm.setData('monthly_fee', parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
                                 <input
                                     type="checkbox"
                                     id="create_two_factor"
@@ -554,7 +615,45 @@ export default function StoresIndex({ stores, filters }: Props) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 pt-2">
+                            {/* Billing & Lifetime Free Setting */}
+                            <div className="p-3.5 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <label htmlFor="edit_lifetime_free" className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                                            Free for Lifetime Store
+                                        </label>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                            Exempts store from all monthly invoices, payments, and service suspensions.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        id="edit_lifetime_free"
+                                        checked={editForm.data.is_lifetime_free}
+                                        onChange={(e) => editForm.setData('is_lifetime_free', e.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    />
+                                </div>
+
+                                {!editForm.data.is_lifetime_free && (
+                                    <div className="pt-2 border-t border-purple-100 dark:border-purple-900/40 space-y-1">
+                                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            Monthly Subscription Fee (BDT) <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            step="10"
+                                            required
+                                            value={editForm.data.monthly_fee}
+                                            onChange={(e) => editForm.setData('monthly_fee', parseFloat(e.target.value) || 0)}
+                                            className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
                                 <input
                                     type="checkbox"
                                     id="edit_two_factor"

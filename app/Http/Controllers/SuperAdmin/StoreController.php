@@ -46,6 +46,9 @@ class StoreController extends Controller
                 'name' => $store->name,
                 'email' => $store->email,
                 'max_outlets' => $store->max_outlets,
+                'is_lifetime_free' => (bool) $store->is_lifetime_free,
+                'monthly_fee' => (float) ($store->monthly_fee ?? 500.00),
+                'is_suspended' => $store->isSuspended(),
                 'outlets_count' => $store->outlets_count,
                 'employees_count' => $store->employees_count,
                 'storage_bytes' => $store->getTotalStorageBytes(),
@@ -74,6 +77,8 @@ class StoreController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:admins,email'],
             'password' => ['required', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
+            'is_lifetime_free' => ['boolean'],
+            'monthly_fee' => ['nullable', 'numeric', 'min:0'],
             'session_time' => ['nullable', 'integer', 'min:5', 'max:720'],
             'two_factor_enabled' => ['boolean'],
         ]);
@@ -90,6 +95,8 @@ class StoreController extends Controller
                 'password' => Hash::make($request->password),
                 'store_id' => $storeId,
                 'max_outlets' => (int) $request->max_outlets,
+                'is_lifetime_free' => $request->boolean('is_lifetime_free'),
+                'monthly_fee' => $request->filled('monthly_fee') ? (float) $request->monthly_fee : 500.00,
                 'session_time' => (int) ($request->session_time ?: 30),
                 'two_factor_enabled' => $request->boolean('two_factor_enabled'),
             ]);
@@ -121,14 +128,21 @@ class StoreController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:admins,email,' . $store->id],
             'password' => ['nullable', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
+            'is_lifetime_free' => ['boolean'],
+            'monthly_fee' => ['nullable', 'numeric', 'min:0'],
             'session_time' => ['nullable', 'integer', 'min:5', 'max:720'],
             'two_factor_enabled' => ['boolean'],
         ]);
+
+        $newMonthlyFee = $request->filled('monthly_fee') ? (float) $request->monthly_fee : 500.00;
+        $isLifetimeFree = $request->boolean('is_lifetime_free');
 
         $data = [
             'name' => trim($request->name),
             'email' => trim($request->email),
             'max_outlets' => (int) $request->max_outlets,
+            'is_lifetime_free' => $isLifetimeFree,
+            'monthly_fee' => $newMonthlyFee,
             'session_time' => (int) ($request->session_time ?: 30),
             'two_factor_enabled' => $request->boolean('two_factor_enabled'),
         ];
@@ -138,6 +152,17 @@ class StoreController extends Controller
         }
 
         $store->update($data);
+
+        // If the monthly fee was changed or store set to free, sync unpaid/pending/rejected invoices
+        if ($isLifetimeFree) {
+            // Cancel/delete unpaid invoices since the store is now lifetime free
+            $store->invoices()->whereIn('status', ['unpaid', 'rejected'])->delete();
+        } else {
+            // Update the amount on unpaid/rejected invoices to reflect the newly specified custom fee
+            $store->invoices()->whereIn('status', ['unpaid', 'rejected'])->update([
+                'amount' => $newMonthlyFee,
+            ]);
+        }
 
         return back()->with('success', "Store '{$store->name}' updated successfully.");
     }
@@ -150,7 +175,7 @@ class StoreController extends Controller
         $name = $store->name;
         $disk = Storage::disk('public');
 
-        // Cleanup employee files
+        // Explicitly cleanup all employee media files
         foreach ($store->employees as $employee) {
             if ($employee->image && $disk->exists($employee->image)) {
                 $disk->delete($employee->image);
@@ -170,9 +195,17 @@ class StoreController extends Controller
             }
         }
 
-        $store->delete();
+        // Explicit cascade removal of all related entities
+        DB::transaction(function () use ($store) {
+            $store->attendances()->delete();
+            $store->employees()->delete();
+            $store->outlets()->delete();
+            $store->invoices()->delete();
+            $store->setting()?->delete();
+            $store->delete();
+        });
 
-        return back()->with('success', "Store '{$name}' and all associated outlets, employees, attendances, and storage files were permanently removed.");
+        return back()->with('success', "Store '{$name}' and all associated outlets, employees, attendance records, invoices, and files have been permanently and irreversibly removed.");
     }
 
     /**

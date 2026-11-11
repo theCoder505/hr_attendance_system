@@ -261,13 +261,6 @@ export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
 
                 <div className="flex items-center gap-4">
                     <ThemeToggle variant="dropdown" />
-                    <Link
-                        href="/store/login"
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all"
-                    >
-                        <Store className="h-3.5 w-3.5" />
-                        <span>Store Login</span>
-                    </Link>
                 </div>
             </header>
 
@@ -596,6 +589,9 @@ export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
                     <div className="flex items-center gap-6">
                         <Link href="/attendance" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                             Attendance Portal
+                        </Link>
+                        <Link href="/user-manual" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            User Manual
                         </Link>
                     </div>
                 </div>
