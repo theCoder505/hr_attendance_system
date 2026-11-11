@@ -90,8 +90,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                 <button
                     onClick={() => handleFilterChange(month, year, search, 'all')}
                     className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${activeOutletId === 'all' || !activeOutletId
-                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                         }`}
                 >
                     <Store className="h-4 w-4" />
@@ -105,8 +105,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                             key={outlet.id}
                             onClick={() => handleFilterChange(month, year, search, outlet.id)}
                             className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${isActive
-                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
                                 }`}
                         >
                             <Store className="h-4 w-4" />
@@ -183,7 +183,7 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                         className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
                     >
                         <FileSpreadsheet className="h-4 w-4" />
-                        Export All Logs to XLSX
+                        Export Report to XLSX
                     </button>
                 </div>
             </div>

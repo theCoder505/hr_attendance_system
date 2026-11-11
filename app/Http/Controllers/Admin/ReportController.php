@@ -144,8 +144,8 @@ class ReportController extends Controller
         $admin = Auth::guard('admin')->user();
         $employeeId = $request->query('employee_id') ? (int) $request->query('employee_id') : null;
         $outletId = $request->query('outlet_id') && $request->query('outlet_id') !== 'all' ? (int) $request->query('outlet_id') : null;
-        $month = $request->query('month') ? (int) $request->query('month') : null;
-        $year = $request->query('year') ? (int) $request->query('year') : null;
+        $month = (int) $request->query('month', Carbon::now()->month);
+        $year = (int) $request->query('year', Carbon::now()->year);
 
         return $exportService->exportToExcel($employeeId, $outletId, $admin->id, $month, $year);
     }
