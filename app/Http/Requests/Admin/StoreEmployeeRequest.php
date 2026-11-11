@@ -23,9 +23,16 @@ class StoreEmployeeRequest extends FormRequest
             'working_hours' => ['required', 'numeric', 'min:1', 'max:24'],
             'check_in_time' => ['nullable', 'string'],
             'check_out_time' => ['nullable', 'string'],
-            'joining_date' => ['required', 'date'],
+            'joining_date' => ['required', 'date', 'before_or_equal:' . \Carbon\Carbon::today(config('app.timezone', 'Asia/Dhaka'))->toDateString()],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
             'appointment_letter' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'joining_date.before_or_equal' => 'Joining date cannot be in the future.',
         ];
     }
 }

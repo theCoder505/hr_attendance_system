@@ -18,4 +18,17 @@ class UpdateAttendanceRequest extends FormRequest
             'check_out_time' => ['nullable', 'string'],
         ];
     }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $attendance = $this->route('attendance');
+            $appTimezone = config('app.timezone', 'Asia/Dhaka');
+            $today = \Carbon\Carbon::today($appTimezone)->toDateString();
+
+            if ($attendance && $attendance->date > $today) {
+                $validator->errors()->add('date', 'Attendance cannot be edited for future dates.');
+            }
+        });
+    }
 }

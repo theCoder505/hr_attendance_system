@@ -602,6 +602,7 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                     <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Joining Date *</label>
                                     <input
                                         type="date"
+                                        max={todayStr}
                                         required
                                         value={createForm.data.joining_date}
                                         onChange={(e) => createForm.setData('joining_date', e.target.value)}

@@ -1,6 +1,6 @@
 import AdminLayout from '@/layouts/admin-layout';
 import StoragePieChart, { StorageDetails } from '@/components/storage-pie-chart';
-import { showConfirm } from '@/lib/swal';
+import { showConfirm, showError } from '@/lib/swal';
 import { formatMinutes, getTodayDateString } from '@/lib/utils';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
@@ -71,6 +71,7 @@ export default function AdminDashboard({
     const { timezone: sharedTimezone, today: sharedToday } = usePage<{ timezone?: string; today?: string }>().props;
     const appTimezone = timezone || sharedTimezone || 'Asia/Dhaka';
     const todayStr = today || sharedToday || getTodayDateString(appTimezone);
+    const isFutureDate = selectedDate > todayStr;
 
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -153,6 +154,11 @@ export default function AdminDashboard({
 
     // Open Edit Modal
     const openEditModal = (record: any) => {
+        if (record.date > todayStr) {
+            showError('Action Not Allowed', 'Attendance cannot be edited for future dates.');
+            return;
+        }
+
         setEditingRecord(record);
         let inTime = '';
         let outTime = '';
@@ -192,6 +198,11 @@ export default function AdminDashboard({
     // Submit Add Record
     const handleAddSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (addForm.data.date > todayStr) {
+            showError('Invalid Date', 'Attendance cannot be added for future dates. You can only record attendance for today or past days.');
+            return;
+        }
+
         addForm.post('/store/attendances', {
             onSuccess: () => {
                 setAddModalOpen(false);
@@ -204,6 +215,10 @@ export default function AdminDashboard({
     const handleEditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingRecord) return;
+        if (editingRecord.date > todayStr) {
+            showError('Action Not Allowed', 'Attendance cannot be edited for future dates.');
+            return;
+        }
 
         editForm.put(`/store/attendances/${editingRecord.id}`, {
             onSuccess: () => {
@@ -277,7 +292,8 @@ export default function AdminDashboard({
                     <div className="flex items-center gap-2 self-start sm:self-auto">
                         <button
                             onClick={() => {
-                                addForm.setData('date', selectedDate);
+                                const targetDate = isFutureDate ? todayStr : selectedDate;
+                                addForm.setData('date', targetDate);
                                 setAddModalOpen(true);
                             }}
                             disabled={availableEmployees.length === 0}
@@ -562,19 +578,32 @@ export default function AdminDashboard({
                                         Today
                                     </span>
                                 )}
+                                {isFutureDate && (
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+                                        Future Date
+                                    </span>
+                                )}
                             </div>
                             <p className="mt-0.5 text-xs text-slate-400">
-                                Showing {attendances.length} employee record{attendances.length === 1 ? '' : 's'}
+                                {isFutureDate
+                                    ? 'Attendance cannot be added or modified for future dates.'
+                                    : `Showing ${attendances.length} employee record${attendances.length === 1 ? '' : 's'}`
+                                }
                             </p>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => {
+                                    if (isFutureDate) {
+                                        showError('Future Date Restriction', 'Attendance cannot be added for future dates. Please select today or a past day.');
+                                        return;
+                                    }
                                     addForm.setData('date', selectedDate);
                                     setAddModalOpen(true);
                                 }}
-                                disabled={availableEmployees.length === 0}
+                                disabled={isFutureDate || availableEmployees.length === 0}
+                                title={isFutureDate ? 'Cannot add attendance for future dates' : undefined}
                                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-4 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/25 transition-all disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Plus className="h-4 w-4" />
@@ -588,11 +617,15 @@ export default function AdminDashboard({
                         {attendances.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
                                 <CalendarIcon className="mb-2 h-10 w-10 text-slate-300 dark:text-slate-700" />
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                    No attendance entries recorded for this date.
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    {isFutureDate
+                                        ? 'This is a future date.'
+                                        : 'No attendance entries recorded for this date.'}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-400">
-                                    Use "Add Manual Attendance" or employees can clock in using their device.
+                                <p className="mt-1 text-xs text-slate-400 max-w-sm">
+                                    {isFutureDate
+                                        ? 'Attendance cannot be added or edited for future dates. You can record and manage attendance for today and past days.'
+                                        : 'Use "Add Manual Attendance" or employees can clock in using their device.'}
                                 </p>
                             </div>
                         ) : (
@@ -711,13 +744,22 @@ export default function AdminDashboard({
 
                                             <td className="py-3 pr-3 text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    <button
-                                                        onClick={() => openEditModal(item)}
-                                                        title="Edit Times"
-                                                        className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
-                                                    >
-                                                        <Edit2 className="h-3.5 w-3.5" />
-                                                    </button>
+                                                    {item.date <= todayStr ? (
+                                                        <button
+                                                            onClick={() => openEditModal(item)}
+                                                            title="Edit Times"
+                                                            className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                                                        >
+                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    ) : (
+                                                        <span
+                                                            title="Cannot edit attendance on future dates"
+                                                            className="rounded-lg p-1.5 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                                                        >
+                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                        </span>
+                                                    )}
                                                     <button
                                                         onClick={() => handleDeleteRecord(item)}
                                                         title="Delete Attendance"
@@ -743,7 +785,7 @@ export default function AdminDashboard({
                         <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
                             <div>
                                 <h4 className="text-base font-bold text-slate-900 dark:text-white">Add Manual Attendance</h4>
-                                <p className="text-xs text-slate-400">Date: {selectedDate}</p>
+                                <p className="text-xs text-slate-400">Record attendance for today or past days</p>
                             </div>
                             <button
                                 onClick={() => setAddModalOpen(false)}
@@ -754,6 +796,21 @@ export default function AdminDashboard({
                         </div>
 
                         <form onSubmit={handleAddSubmit} className="space-y-4">
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    Attendance Date <span className="text-slate-400 font-normal">(Today or past days only)</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    max={todayStr}
+                                    value={addForm.data.date}
+                                    onChange={(e) => addForm.setData('date', e.target.value)}
+                                    required
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                                />
+                                {addForm.errors.date && <p className="mt-1 text-xs text-rose-500">{addForm.errors.date}</p>}
+                            </div>
+
                             <div>
                                 <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">Select Employee</label>
                                 <select

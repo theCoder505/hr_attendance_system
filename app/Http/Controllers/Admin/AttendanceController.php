@@ -23,6 +23,13 @@ class AttendanceController extends Controller
         $employee = $admin->employees()->findOrFail($request->employee_id);
         $date = $request->date;
 
+        $appTimezone = config('app.timezone', 'Asia/Dhaka');
+        $today = Carbon::today($appTimezone)->toDateString();
+
+        if ($date > $today) {
+            return back()->with('error', 'Attendance cannot be added for future dates.');
+        }
+
         // Check if attendance already exists for this date and employee
         $exists = Attendance::where('employee_id', $employee->id)->where('date', $date)->exists();
         if ($exists) {
@@ -58,6 +65,13 @@ class AttendanceController extends Controller
         $admin = Auth::guard('admin')->user();
         if ($attendance->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to attendance record.');
+        }
+
+        $appTimezone = config('app.timezone', 'Asia/Dhaka');
+        $today = Carbon::today($appTimezone)->toDateString();
+
+        if ($attendance->date > $today) {
+            return back()->with('error', 'Attendance cannot be edited for future dates.');
         }
 
         $employee = $attendance->employee;
