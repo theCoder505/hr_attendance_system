@@ -240,7 +240,6 @@ class AttendanceExportService
                 $cIn = Carbon::parse($item->check_in_at);
                 $cOut = Carbon::parse($item->check_out_at);
                 $workedMins = max(0, $cIn->diffInMinutes($cOut));
-                $logWorkedMinsTotal += $workedMins;
                 $h = floor($workedMins / 60);
                 $m = $workedMins % 60;
                 $target = (float) ($item->employee?->working_hours ?? 8);
