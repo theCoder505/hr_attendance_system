@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\Employee;
-use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +17,8 @@ class DashboardController extends Controller
      */
     public function index(Request $request): Response
     {
+        $admin = Auth::guard('admin')->user();
+
         $selectedDate = $request->query('date', Carbon::today()->toDateString());
         $carbonDate = Carbon::parse($selectedDate);
 
@@ -26,10 +26,10 @@ class DashboardController extends Controller
         $year = (int) $request->query('year', $carbonDate->year);
         $activeOutletId = $request->query('outlet_id', 'all');
 
-        $outlets = Outlet::withCount('employees')->orderBy('name')->get();
+        $outlets = $admin->outlets()->withCount('employees')->orderBy('name')->get();
 
         // Query employees based on active outlet tab
-        $employeeQuery = Employee::with('outlet')->orderBy('name');
+        $employeeQuery = $admin->employees()->with('outlet')->orderBy('name');
         if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
             $employeeQuery->where('outlet_id', (int) $activeOutletId);
         }
@@ -37,7 +37,7 @@ class DashboardController extends Controller
         $totalEmployeesCount = $allEmployees->where('status', 1)->count();
 
         // Attendances for the selected date (filtered by outlet if selected)
-        $attendanceQuery = Attendance::with(['employee', 'outlet'])->where('date', $selectedDate);
+        $attendanceQuery = $admin->attendances()->with(['employee', 'outlet'])->where('date', $selectedDate);
         if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
             $attendanceQuery->where('outlet_id', (int) $activeOutletId);
         }
@@ -60,7 +60,7 @@ class DashboardController extends Controller
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        $monthlyAttendancesQuery = Attendance::whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+        $monthlyAttendancesQuery = $admin->attendances()->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
         if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
             $monthlyAttendancesQuery->where('outlet_id', (int) $activeOutletId);
         }
@@ -85,7 +85,7 @@ class DashboardController extends Controller
             $cursor->addDay();
         }
 
-        $settings = WebsiteSetting::current();
+        $settings = WebsiteSetting::forAdmin($admin->id);
 
         return Inertia::render('admin/dashboard/index', [
             'selectedDate' => $selectedDate,

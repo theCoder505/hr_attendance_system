@@ -29,7 +29,7 @@ export default function AdminLogin({ brandname, logo }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/administration-control/login');
+        post('/store/login');
     };
 
     return (

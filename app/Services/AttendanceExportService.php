@@ -17,9 +17,13 @@ class AttendanceExportService
     /**
      * Export attendance records for all, a specific employee, or a specific outlet as an XLSX download.
      */
-    public function exportToExcel(?int $employeeId = null, ?int $outletId = null): StreamedResponse
+    public function exportToExcel(?int $employeeId = null, ?int $outletId = null, ?int $adminId = null): StreamedResponse
     {
         $query = Attendance::with(['employee', 'outlet'])->orderBy('date', 'desc');
+
+        if ($adminId) {
+            $query->where('admin_id', $adminId);
+        }
 
         $filename = 'Attendance_Export_All_' . date('Y-m-d_His') . '.xlsx';
 

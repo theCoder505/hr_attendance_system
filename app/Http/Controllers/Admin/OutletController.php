@@ -6,17 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\Outlet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class OutletController extends Controller
 {
     /**
-     * Store a newly created outlet (Maximum 5 outlets).
+     * Store a newly created outlet (Limited by admin's max_outlets setting).
      */
     public function store(Request $request): RedirectResponse
     {
-        if (Outlet::count() >= 5) {
-            return back()->with('error', 'Maximum limit of 5 outlets reached. Delete an existing outlet before adding a new one.');
+        $admin = Auth::guard('admin')->user();
+        $maxOutlets = $admin->max_outlets ?: 5;
+
+        if ($admin->outlets()->count() >= $maxOutlets) {
+            return back()->with('error', "Maximum limit of {$maxOutlets} outlets reached for your store. Please contact Super Admin to increase your outlet quota.");
         }
 
         $request->validate([
@@ -29,7 +33,7 @@ class OutletController extends Controller
             $cleanWifi = '127.0.0.1';
         }
 
-        $outlet = Outlet::create([
+        $outlet = $admin->outlets()->create([
             'name' => trim($request->name),
             'wifi_ip' => $cleanWifi,
         ]);
@@ -42,6 +46,11 @@ class OutletController extends Controller
      */
     public function update(Request $request, Outlet $outlet): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($outlet->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to outlet.');
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'wifi_ip' => ['required', 'string', 'max:255'],
@@ -65,6 +74,11 @@ class OutletController extends Controller
      */
     public function destroy(Outlet $outlet): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($outlet->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to outlet.');
+        }
+
         $name = $outlet->name;
         $employeeCount = $outlet->employees()->count();
         $attendanceCount = $outlet->attendances()->count();

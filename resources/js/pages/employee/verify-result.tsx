@@ -8,6 +8,8 @@ interface Props {
     status: 'success' | 'expired' | 'invalid';
     message?: string;
     raw_token?: string;
+    store_id?: string;
+    store_name?: string;
     outlet_uid?: string;
     outlet?: {
         id: number;
@@ -27,6 +29,8 @@ export default function VerifyResult({
     status,
     message,
     raw_token,
+    store_id,
+    store_name,
     outlet_uid,
     outlet,
     employee,
@@ -36,13 +40,16 @@ export default function VerifyResult({
     useEffect(() => {
         if (status === 'success' && raw_token) {
             localStorage.setItem('device_token', raw_token);
+            if (store_id) {
+                localStorage.setItem('store_id', store_id);
+            }
             const uidToStore = outlet_uid || outlet?.uid;
             if (uidToStore) {
                 localStorage.setItem('outlet_uid', uidToStore);
             }
-            showToast('Device & Outlet successfully authenticated & registered!', 'success');
+            showToast('Device, Store & Outlet successfully authenticated!', 'success');
         }
-    }, [status, raw_token, outlet_uid, outlet]);
+    }, [status, raw_token, store_id, outlet_uid, outlet]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-50/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
@@ -93,6 +100,12 @@ export default function VerifyResult({
                                         <span className="text-xs text-slate-500 dark:text-slate-400">Employee ID</span>
                                         <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{employee.uid}</span>
                                     </div>
+                                    {store_id && (
+                                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">Store</span>
+                                            <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{store_name ? `${store_name} (${store_id})` : store_id}</span>
+                                        </div>
+                                    )}
                                     {outlet && (
                                         <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
                                             <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Outlet</span>

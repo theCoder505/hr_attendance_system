@@ -37,7 +37,8 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $admin = \Illuminate\Support\Facades\Auth::guard('admin')->user();
-        $settings = \App\Models\WebsiteSetting::current();
+        $superAdmin = \Illuminate\Support\Facades\Auth::guard('super_admin')->user();
+        $settings = $admin ? \App\Models\WebsiteSetting::forAdmin($admin->id) : \App\Models\WebsiteSetting::current();
 
         return array_merge(parent::share($request), [
             'name' => $settings->brandname ?? config('app.name'),
@@ -45,9 +46,18 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'admin' => $admin ? [
                     'id' => $admin->id,
+                    'uid' => $admin->uid,
+                    'store_id' => $admin->store_id,
                     'name' => $admin->name,
                     'email' => $admin->email,
+                    'max_outlets' => $admin->max_outlets,
                     'session_time' => $admin->session_time,
+                ] : null,
+                'super_admin' => $superAdmin ? [
+                    'id' => $superAdmin->id,
+                    'name' => $superAdmin->name,
+                    'email' => $superAdmin->email,
+                    'session_time' => $superAdmin->session_time,
                 ] : null,
             ],
             'flash' => [

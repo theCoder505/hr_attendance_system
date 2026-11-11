@@ -14,6 +14,24 @@ class AdminSessionTimeout
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (Auth::guard('super_admin')->check()) {
+            $superAdmin = Auth::guard('super_admin')->user();
+            $timeoutMinutes = $superAdmin->session_time ?: 30;
+
+            $lastActivity = session('super_admin_last_activity');
+
+            if ($lastActivity && now()->diffInMinutes($lastActivity) >= $timeoutMinutes) {
+                Auth::guard('super_admin')->logout();
+                session()->forget('super_admin_last_activity');
+                session()->invalidate();
+                session()->regenerateToken();
+
+                return redirect()->route('super-admin.login')->with('warning', 'Your session has expired due to inactivity. Please log in again.');
+            }
+
+            session(['super_admin_last_activity' => now()]);
+        }
+
         if (Auth::guard('admin')->check()) {
             $admin = Auth::guard('admin')->user();
             $timeoutMinutes = $admin->session_time ?: 30;

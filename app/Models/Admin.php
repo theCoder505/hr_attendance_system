@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Admin extends Authenticatable
@@ -25,9 +28,11 @@ class Admin extends Authenticatable
      */
     protected $fillable = [
         'uid',
+        'store_id',
         'name',
         'email',
         'password',
+        'max_outlets',
         'otp',
         'otp_expires_at',
         'session_time',
@@ -56,6 +61,7 @@ class Admin extends Authenticatable
             'password' => 'hashed',
             'otp_expires_at' => 'datetime',
             'session_time' => 'integer',
+            'max_outlets' => 'integer',
             'two_factor_enabled' => 'boolean',
         ];
     }
@@ -71,7 +77,97 @@ class Admin extends Authenticatable
             if (empty($admin->uid)) {
                 $admin->uid = 'ADM-' . strtoupper(Str::random(8));
             }
+            if (empty($admin->store_id)) {
+                $admin->store_id = 'STR-' . strtoupper(Str::random(6));
+            }
+            if (empty($admin->max_outlets)) {
+                $admin->max_outlets = 5;
+            }
         });
+    }
+
+    /**
+     * Outlets belonging to this store/admin.
+     */
+    public function outlets(): HasMany
+    {
+        return $this->hasMany(Outlet::class, 'admin_id');
+    }
+
+    /**
+     * Employees belonging to this store/admin.
+     */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'admin_id');
+    }
+
+    /**
+     * Attendances belonging to this store/admin.
+     */
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'admin_id');
+    }
+
+    /**
+     * Website/store settings belonging to this store/admin.
+     */
+    public function setting(): HasOne
+    {
+        return $this->hasOne(WebsiteSetting::class, 'admin_id');
+    }
+
+    /**
+     * Calculate total storage bytes consumed by this admin's uploaded files.
+     */
+    public function getTotalStorageBytes(): int
+    {
+        $bytes = 0;
+        $disk = Storage::disk('public');
+
+        // Check employee images and appointment letters
+        $employees = $this->employees()->select('image', 'appointment_letter')->get();
+        foreach ($employees as $emp) {
+            if ($emp->image && $disk->exists($emp->image)) {
+                $bytes += (int) $disk->size($emp->image);
+            }
+            if ($emp->appointment_letter && $disk->exists($emp->appointment_letter)) {
+                $bytes += (int) $disk->size($emp->appointment_letter);
+            }
+        }
+
+        // Check store setting files
+        $setting = $this->setting;
+        if ($setting) {
+            if ($setting->logo && $disk->exists($setting->logo)) {
+                $bytes += (int) $disk->size($setting->logo);
+            }
+            if ($setting->favicon && $disk->exists($setting->favicon)) {
+                $bytes += (int) $disk->size($setting->favicon);
+            }
+        }
+
+        return $bytes;
+    }
+
+    /**
+     * Formatted string of storage consumption.
+     */
+    public function getFormattedStorageAttribute(): string
+    {
+        $bytes = $this->getTotalStorageBytes();
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        }
+        if ($bytes < 1048576) {
+            return round($bytes / 1024, 2) . ' KB';
+        }
+        if ($bytes < 1073741824) {
+            return round($bytes / 1048576, 2) . ' MB';
+        }
+
+        return round($bytes / 1073741824, 2) . ' GB';
     }
 
     /**

@@ -13,6 +13,7 @@ class Attendance extends Model
     protected $table = 'attendances';
 
     protected $fillable = [
+        'admin_id',
         'outlet_id',
         'employee_id',
         'date',
@@ -35,6 +36,25 @@ class Attendance extends Model
             'early_leave_minutes' => 'integer',
             'is_manual' => 'boolean',
         ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($attendance) {
+            if (empty($attendance->admin_id) && ! empty($attendance->employee_id)) {
+                $employee = Employee::find($attendance->employee_id);
+                if ($employee && $employee->admin_id) {
+                    $attendance->admin_id = $employee->admin_id;
+                }
+            }
+        });
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 
     public function employee(): BelongsTo

@@ -16,6 +16,7 @@ class Employee extends Model
     protected $table = 'employees';
 
     protected $fillable = [
+        'admin_id',
         'outlet_id',
         'uid',
         'name',
@@ -66,9 +67,21 @@ class Employee extends Model
                 $employee->check_out_time = $settings->office_closing_time ?? '17:00:00';
             }
 
-            // Assign default outlet if not set
+            // If outlet_id is provided but admin_id is not, derive admin_id from outlet
+            if (empty($employee->admin_id) && ! empty($employee->outlet_id)) {
+                $outlet = Outlet::find($employee->outlet_id);
+                if ($outlet && $outlet->admin_id) {
+                    $employee->admin_id = $outlet->admin_id;
+                }
+            }
+
+            // Assign default outlet if not set and admin has outlets
             if (empty($employee->outlet_id)) {
-                $employee->outlet_id = Outlet::first()?->id;
+                if (! empty($employee->admin_id)) {
+                    $employee->outlet_id = Outlet::where('admin_id', $employee->admin_id)->first()?->id;
+                } else {
+                    $employee->outlet_id = Outlet::first()?->id;
+                }
             }
 
             // New employees start with status 0 and a verification token valid for 7 days
@@ -90,6 +103,11 @@ class Employee extends Model
 
             $employee->attendances()->delete();
         });
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 
     public function outlet(): BelongsTo

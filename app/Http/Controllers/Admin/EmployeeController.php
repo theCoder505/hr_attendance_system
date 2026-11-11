@@ -10,6 +10,7 @@ use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,15 +18,16 @@ use Inertia\Response;
 class EmployeeController extends Controller
 {
     /**
-     * Display a listing of employees.
+     * Display a listing of employees for the authenticated admin's store.
      */
     public function index(Request $request): Response
     {
+        $admin = Auth::guard('admin')->user();
         $search = $request->query('search');
         $status = $request->query('status');
         $outletId = $request->query('outlet_id');
 
-        $query = Employee::with('outlet')->withCount('attendances')->orderBy('created_at', 'desc');
+        $query = $admin->employees()->with('outlet')->withCount('attendances')->orderBy('created_at', 'desc');
 
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {
@@ -45,8 +47,8 @@ class EmployeeController extends Controller
         }
 
         $employees = $query->paginate(15)->withQueryString();
-        $settings = WebsiteSetting::current();
-        $outlets = Outlet::withCount('employees')->orderBy('name')->get();
+        $settings = WebsiteSetting::forAdmin($admin->id);
+        $outlets = $admin->outlets()->withCount('employees')->orderBy('name')->get();
 
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
@@ -65,11 +67,19 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Store a newly created employee.
+     * Store a newly created employee for the authenticated store.
      */
     public function store(StoreEmployeeRequest $request): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
         $data = $request->validated();
+
+        if (! empty($data['outlet_id'])) {
+            $validOutlet = $admin->outlets()->where('id', $data['outlet_id'])->exists();
+            if (! $validOutlet) {
+                return back()->with('error', 'The selected outlet does not belong to your store.');
+            }
+        }
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('employees/images', 'public');
@@ -79,7 +89,8 @@ class EmployeeController extends Controller
             $data['appointment_letter'] = $request->file('appointment_letter')->store('employees/letters', 'public');
         }
 
-        $employee = Employee::create($data);
+        $data['admin_id'] = $admin->id;
+        $employee = $admin->employees()->create($data);
 
         return redirect()->route('admin.employees.index')->with('success', "Employee '{$employee->name}' registered successfully. Verification link generated.");
     }
@@ -89,7 +100,19 @@ class EmployeeController extends Controller
      */
     public function update(UpdateEmployeeRequest $request, Employee $employee): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($employee->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to employee.');
+        }
+
         $data = $request->validated();
+
+        if (! empty($data['outlet_id'])) {
+            $validOutlet = $admin->outlets()->where('id', $data['outlet_id'])->exists();
+            if (! $validOutlet) {
+                return back()->with('error', 'The selected outlet does not belong to your store.');
+            }
+        }
 
         if ($request->hasFile('image')) {
             if (! empty($employee->image) && Storage::disk('public')->exists($employee->image)) {
@@ -119,6 +142,11 @@ class EmployeeController extends Controller
      */
     public function destroy(Employee $employee): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($employee->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to employee.');
+        }
+
         $name = $employee->name;
         $employee->delete();
 
@@ -130,6 +158,11 @@ class EmployeeController extends Controller
      */
     public function resetVerification(Employee $employee): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($employee->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to employee.');
+        }
+
         $token = $employee->resetForReverification();
         $verifyLink = url("/verify/{$token}");
 

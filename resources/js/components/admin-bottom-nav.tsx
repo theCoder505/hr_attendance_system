@@ -20,33 +20,34 @@ export default function AdminBottomNav({ currentRoute, onLogout }: AdminBottomNa
         {
             key: 'dashboard',
             label: 'Dashboard',
-            href: '/administration-control/dashboard',
+            href: '/store/dashboard',
             icon: Calendar,
             active:
-                currentRoute.includes('/administration-control/dashboard') ||
-                currentRoute === '/administration-control' ||
-                currentRoute === '/administration-control/',
+                currentRoute.includes('/store/dashboard') ||
+                currentRoute === '/store' ||
+                currentRoute === '/store/' ||
+                currentRoute.includes('/administration-control'),
         },
         {
             key: 'employees',
             label: 'Employees',
-            href: '/administration-control/employees',
+            href: '/store/employees',
             icon: Users,
-            active: currentRoute.includes('/administration-control/employees'),
+            active: currentRoute.includes('/store/employees') || currentRoute.includes('/administration-control/employees'),
         },
         {
             key: 'report',
             label: 'Report',
-            href: '/administration-control/reports',
+            href: '/store/reports',
             icon: FileSpreadsheet,
-            active: currentRoute.includes('/administration-control/reports'),
+            active: currentRoute.includes('/store/reports') || currentRoute.includes('/administration-control/reports'),
         },
         {
             key: 'settings',
             label: 'Settings',
-            href: '/administration-control/settings',
+            href: '/store/settings',
             icon: Settings,
-            active: currentRoute.includes('/administration-control/settings'),
+            active: currentRoute.includes('/store/settings') || currentRoute.includes('/administration-control/settings'),
         },
         {
             key: 'portal',

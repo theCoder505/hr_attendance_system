@@ -80,7 +80,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
     // Search & Filter
     const handleFilter = (searchVal = searchTerm, statusVal = statusFilter, outletVal = outletFilter) => {
         router.get(
-            '/administration-control/employees',
+            '/store/employees',
             { search: searchVal, status: statusVal, outlet_id: outletVal },
             { preserveState: true }
         );
@@ -133,7 +133,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
         );
 
         if (confirmed) {
-            router.post(`/administration-control/employees/${emp.id}/reset-verification`);
+            router.post(`/store/employees/${emp.id}/reset-verification`);
         }
     };
 
@@ -146,14 +146,14 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
         );
 
         if (confirmed) {
-            router.delete(`/administration-control/employees/${emp.id}`);
+            router.delete(`/store/employees/${emp.id}`);
         }
     };
 
     // Submit Create
     const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        createForm.post('/administration-control/employees', {
+        createForm.post('/store/employees', {
             onSuccess: () => {
                 setCreateModalOpen(false);
                 createForm.reset();
@@ -166,7 +166,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
         e.preventDefault();
         if (!selectedEmployee) return;
 
-        editForm.post(`/administration-control/employees/${selectedEmployee.id}`, {
+        editForm.post(`/store/employees/${selectedEmployee.id}`, {
             onSuccess: () => {
                 setEditModalOpen(false);
                 setSelectedEmployee(null);

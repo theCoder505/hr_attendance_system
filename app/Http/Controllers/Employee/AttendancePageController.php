@@ -56,6 +56,8 @@ class AttendancePageController extends Controller
         $year = Carbon::now()->year;
         $monthlyStats = $attendanceService->getMonthlyStats($employee->id, $year, $month);
 
+        $employee->loadMissing(['outlet', 'admin']);
+
         return response()->json([
             'success' => true,
             'employee' => [
@@ -64,6 +66,8 @@ class AttendancePageController extends Controller
                 'name' => $employee->name,
                 'role' => $employee->role,
                 'image' => $employee->image,
+                'store_id' => $employee->admin?->store_id ?? $employee->admin?->uid,
+                'store_name' => $employee->admin?->name,
                 'outlet_id' => $employee->outlet_id,
                 'outlet' => $employee->outlet ? [
                     'id' => $employee->outlet->id,
@@ -76,6 +80,7 @@ class AttendancePageController extends Controller
                 'working_hours' => $employee->working_hours,
                 'device_token_expires_at' => $employee->device_token_expires_at?->toFormattedDateString(),
             ],
+            'store_id' => $employee->admin?->store_id ?? $employee->admin?->uid,
             'outlet_uid' => $employee->outlet?->uid ?? null,
             'attendance' => $activeAttendance,
             'todayRecord' => $todayRecord,

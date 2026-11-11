@@ -51,11 +51,16 @@ class VerificationController extends Controller
             'verification_expires_at' => null,
         ]);
 
-        $employee->load('outlet');
+        $employee->load(['outlet', 'admin']);
+
+        $storeId = $employee->admin?->store_id ?? $employee->admin?->uid ?? '';
+        $storeName = $employee->admin?->name ?? 'Store';
 
         return Inertia::render('employee/verify-result', [
             'status' => 'success',
             'raw_token' => $rawDeviceToken,
+            'store_id' => $storeId,
+            'store_name' => $storeName,
             'outlet_uid' => $employee->outlet?->uid ?? '',
             'outlet' => $employee->outlet ? [
                 'id' => $employee->outlet->id,

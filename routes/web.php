@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\EmployeeController as AdminEmployeeController;
 use App\Http\Controllers\Admin\OutletController as AdminOutletController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Employee\AttendancePageController;
 use App\Http\Controllers\Employee\VerificationController;
 use App\Models\WebsiteSetting;
@@ -108,11 +109,22 @@ Route::prefix('attendance')->middleware(['verify.device', 'office.network'])->gr
 
 /*
 |--------------------------------------------------------------------------
-| Administration Control Routes (Admin)
-| Prefix: /administration-control
+| Surface Website Contact Page for Store Owners
+| Captcha verification (JS frontend) + OTP verification + Inquiry Submission
 |--------------------------------------------------------------------------
 */
-Route::prefix('administration-control')->name('admin.')->group(function () {
+Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
+Route::post('/contact/send-otp', [ContactController::class, 'sendOtp'])->name('contact.send-otp');
+Route::post('/contact/verify-otp', [ContactController::class, 'verifyOtp'])->name('contact.verify-otp');
+Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+
+/*
+|--------------------------------------------------------------------------
+| Store / Administration Control Routes (Admin / Store Owner)
+| Prefix: /store (previously /administration-control)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('store')->name('admin.')->group(function () {
     // Guest Admin Auth routes
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
@@ -146,19 +158,43 @@ Route::prefix('administration-control')->name('admin.')->group(function () {
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
 
-        // Settings & Admin Profile
+        // Settings & Store Admin Profile
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/general', [AdminSettingsController::class, 'updateGeneral'])->name('settings.general');
         Route::post('/settings/profile', [AdminSettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::post('/settings/credentials/otp', [AdminSettingsController::class, 'requestCredentialsOtp'])->name('settings.credentials.otp');
         Route::post('/settings/credentials', [AdminSettingsController::class, 'updateCredentials'])->name('settings.credentials');
 
-        // Outlets Management (Max 5)
+        // Outlets Management (Limited by Store's max_outlets)
         Route::post('/outlets', [AdminOutletController::class, 'store'])->name('outlets.store');
         Route::put('/outlets/{outlet}', [AdminOutletController::class, 'update'])->name('outlets.update');
         Route::delete('/outlets/{outlet}', [AdminOutletController::class, 'destroy'])->name('outlets.destroy');
     });
 });
+
+// Backward-compatibility redirect from /administration-control to /store
+Route::get('/administration-control/{any?}', function ($any = null) {
+    return redirect('/store/'.($any ? $any : 'login'));
+})->where('any', '.*');
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin Portal Routes
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/super-admin.php';
+
+// Backward-compatibility redirect from /administration-control to /store
+Route::get('/administration-control/{any?}', function ($any = null) {
+    return redirect('/store/'.($any ? $any : 'login'));
+})->where('any', '.*');
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin Portal Routes
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/super-admin.php';
 
 Route::get('/clear', function () {
     Artisan::call('cache:clear');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -14,6 +15,7 @@ class Outlet extends Model
     protected $table = 'outlets';
 
     protected $fillable = [
+        'admin_id',
         'uid',
         'name',
         'wifi_ip',
@@ -21,6 +23,8 @@ class Outlet extends Model
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function ($outlet) {
             if (empty($outlet->uid)) {
                 $outlet->uid = 'OUT-' . strtoupper(Str::random(6));
@@ -36,6 +40,11 @@ class Outlet extends Model
             // Ensure any direct attendances associated with this outlet are also removed
             $outlet->attendances()->delete();
         });
+    }
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 
     public function employees(): HasMany

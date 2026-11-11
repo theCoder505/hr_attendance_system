@@ -101,7 +101,7 @@ export default function AdminLayout({ children, title }: Props) {
     }, [flash]);
 
     const handleLogout = () => {
-        router.post('/administration-control/logout');
+        router.post('/store/logout');
     };
 
     const currentRoute = window.location.pathname;
@@ -109,27 +109,27 @@ export default function AdminLayout({ children, title }: Props) {
     const navItems = [
         {
             label: 'Dashboard & Calendar',
-            href: '/administration-control/dashboard',
+            href: '/store/dashboard',
             icon: Calendar,
-            active: currentRoute.includes('/administration-control/dashboard') || currentRoute === '/administration-control' || currentRoute === '/administration-control/',
+            active: currentRoute.includes('/store/dashboard') || currentRoute === '/store' || currentRoute === '/store/' || currentRoute.includes('/administration-control'),
         },
         {
             label: 'Employees',
-            href: '/administration-control/employees',
+            href: '/store/employees',
             icon: Users,
-            active: currentRoute.includes('/administration-control/employees'),
+            active: currentRoute.includes('/store/employees') || currentRoute.includes('/administration-control/employees'),
         },
         {
             label: 'Monthly Reports',
-            href: '/administration-control/reports',
+            href: '/store/reports',
             icon: FileSpreadsheet,
-            active: currentRoute.includes('/administration-control/reports'),
+            active: currentRoute.includes('/store/reports') || currentRoute.includes('/administration-control/reports'),
         },
         {
             label: 'Settings & Security',
-            href: '/administration-control/settings',
+            href: '/store/settings',
             icon: Settings,
-            active: currentRoute.includes('/administration-control/settings'),
+            active: currentRoute.includes('/store/settings') || currentRoute.includes('/administration-control/settings'),
         },
     ];
 
@@ -141,7 +141,7 @@ export default function AdminLayout({ children, title }: Props) {
                 {/* Mobile & Tablet Header (Clean app header - no hamburger, navigation is in the bottom bar) */}
                 <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                        <Link href="/administration-control/dashboard" className="flex items-center gap-2 overflow-hidden min-w-0">
+                        <Link href="/store/dashboard" className="flex items-center gap-2 overflow-hidden min-w-0">
                             {settings?.logo ? (
                                 <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-auto max-w-[140px] object-contain dark:invert dark:brightness-0" />
                             ) : (
@@ -185,7 +185,7 @@ export default function AdminLayout({ children, title }: Props) {
                             }`}>
                             {/* Expanded state on desktop or mobile view */}
                             <div className={cn("flex items-center justify-between w-full min-w-0", isMinimized && "lg:hidden")}>
-                                <Link href="/administration-control/dashboard" className="flex items-center gap-2.5 overflow-hidden min-w-0">
+                                <Link href="/store/dashboard" className="flex items-center gap-2.5 overflow-hidden min-w-0">
                                     {settings?.logo ? (
                                         <img src={`/storage/${settings.logo}`} alt="Logo" className="max-h-8 w-auto max-w-[150px] object-contain dark:invert dark:brightness-0" />
                                     ) : (
@@ -204,7 +204,7 @@ export default function AdminLayout({ children, title }: Props) {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Link
-                                            href="/administration-control/dashboard"
+                                            href="/store/dashboard"
                                             className="flex items-center justify-center p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                             aria-label={brandname}
                                         >

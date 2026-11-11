@@ -34,12 +34,12 @@ export default function AdminOtp({ masked_email }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/administration-control/otp');
+        post('/store/otp');
     };
 
     const handleResend = () => {
         if (resendCooldown > 0) return;
-        router.post('/administration-control/otp/resend', {}, {
+        router.post('/store/otp/resend', {}, {
             onSuccess: () => {
                 setResendCooldown(60);
                 showToast('New OTP dispatched to your email!', 'success');
@@ -118,7 +118,7 @@ export default function AdminOtp({ masked_email }: Props) {
                     {/* Resend actions */}
                     <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                         <Link
-                            href="/administration-control/login"
+                            href="/store/login"
                             className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
                         >
                             <ArrowLeft className="h-3.5 w-3.5" />

@@ -48,10 +48,14 @@ interface Props {
     };
     outlets: OutletItem[];
     admin: {
+        id?: number;
+        uid?: string;
+        store_id?: string;
         name: string;
         email: string;
         session_time: number;
         two_factor_enabled: boolean;
+        max_outlets?: number;
     };
     clientIp: string;
 }
@@ -60,6 +64,9 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
     const [activeTab, setActiveTab] = useState<'general' | 'security'>('general');
     const [otpRequested, setOtpRequested] = useState(false);
     const { appearance, updateAppearance } = useAppearance();
+
+    const maxOutlets = Number(admin.max_outlets) > 0 ? Number(admin.max_outlets) : 5;
+    const isQuotaFull = outlets.length >= maxOutlets;
 
     // Form 1: General Settings
     const generalForm = useForm({
@@ -106,7 +113,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
 
     const handleAddOutletSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addOutletForm.post('/administration-control/outlets', {
+        addOutletForm.post('/store/outlets', {
             onSuccess: () => {
                 setAddOutletModalOpen(false);
                 addOutletForm.reset({ name: '', wifi_ip: clientIp || '127.0.0.1' });
@@ -130,7 +137,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
     const handleEditOutletSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingOutlet) return;
-        editOutletForm.put(`/administration-control/outlets/${editingOutlet.id}`, {
+        editOutletForm.put(`/store/outlets/${editingOutlet.id}`, {
             onSuccess: () => {
                 setEditOutletModalOpen(false);
                 setEditingOutlet(null);
@@ -151,7 +158,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
         );
 
         if (confirmed) {
-            router.delete(`/administration-control/outlets/${outlet.id}`, {
+            router.delete(`/store/outlets/${outlet.id}`, {
                 onSuccess: () => {
                     showSuccess('Outlet Deleted', `Outlet "${outlet.name}" and associated records removed.`);
                 },
@@ -171,7 +178,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
             office_ipv4_addr: resolvedIps,
         }));
 
-        generalForm.post('/administration-control/settings/general', {
+        generalForm.post('/store/settings/general', {
             onSuccess: () => {
                 generalForm.setData((prev) => ({ ...prev, logo: null, favicon: null }));
                 showToast('General settings updated successfully!', 'success');
@@ -181,13 +188,13 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
 
     const handleProfileSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        profileForm.post('/administration-control/settings/profile', {
+        profileForm.post('/store/settings/profile', {
             onSuccess: () => showToast('Profile details updated!', 'success'),
         });
     };
 
     const handleRequestOtp = () => {
-        router.post('/administration-control/settings/credentials/otp', {}, {
+        router.post('/store/settings/credentials/otp', {}, {
             onSuccess: () => {
                 setOtpRequested(true);
                 showSuccess('A 6-digit OTP code has been dispatched to ' + admin.email);
@@ -197,7 +204,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
 
     const handleCredentialsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        credentialsForm.post('/administration-control/settings/credentials', {
+        credentialsForm.post('/store/settings/credentials', {
             onSuccess: () => {
                 setOtpRequested(false);
                 credentialsForm.reset('otp', 'current_password', 'password', 'password_confirmation');
@@ -209,6 +216,43 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
     return (
         <AdminLayout title="System Settings & Security">
             <Head title="Settings - Attendance Management" />
+
+            {/* Store Information & Dynamic Quota Banner */}
+            {admin.store_id && (
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/60 p-4 shadow-sm dark:border-indigo-900/40 dark:from-indigo-950/30 dark:via-slate-900/40 dark:to-purple-950/20">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
+                            <Store className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                    Store Account
+                                </span>
+                                <span className="rounded-md bg-indigo-100 px-2 py-0.5 font-mono text-[11px] font-bold text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+                                    {admin.store_id}
+                                </span>
+                            </div>
+                            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                                {admin.name} &bull; <span className="font-normal text-xs text-slate-500">{admin.email}</span>
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <div className="rounded-xl border border-slate-200/80 bg-white/80 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900/80">
+                            <div className="text-[10px] uppercase font-semibold text-slate-400">Outlets Quota</div>
+                            <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                {outlets.length} / {maxOutlets} Used
+                            </div>
+                        </div>
+                        <div className="rounded-xl border border-purple-200/80 bg-purple-50/60 px-3 py-1.5 dark:border-purple-800/60 dark:bg-purple-950/40">
+                            <div className="text-[10px] uppercase font-semibold text-purple-600 dark:text-purple-400">Managed By</div>
+                            <div className="text-xs font-bold text-purple-900 dark:text-purple-200">Super Admin</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Navigation Tabs */}
             <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
@@ -325,7 +369,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                             </div>
                         </div>
 
-                        {/* Outlets & Multi-Location WiFi Management (Max 5) */}
+                        {/* Outlets & Multi-Location WiFi Management (Dynamic Max Outlets set by Super Admin) */}
                         <div className="rounded-2xl my-4 border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                                 <div className="flex items-center gap-2.5">
@@ -333,21 +377,24 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                         <Store className="h-4 w-4" />
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                                Outlets & Attendance WiFi (Max 5) *
+                                                Outlets & Attendance WiFi (Max {maxOutlets}) *
                                             </label>
                                             <span
-                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${outlets.length >= 5
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${isQuotaFull
                                                     ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
                                                     : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
                                                     }`}
                                             >
-                                                {outlets.length} / 5 Outlets
+                                                {outlets.length} / {maxOutlets} Outlets
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50">
+                                                Quota Set by Super Admin
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Assign employees to their respective outlets. Their attendance will be strictly verified against their outlet's WiFi IP.
+                                            Assign employees to their respective outlets. Your outlet quota is dynamically managed by the Super Admin ({outlets.length} of {maxOutlets} used).
                                         </p>
                                     </div>
                                 </div>
@@ -355,8 +402,8 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (outlets.length >= 5) {
-                                            showToast('Maximum 5 outlets reached. Remove one before adding.', 'warning');
+                                        if (isQuotaFull) {
+                                            showToast(`Maximum limit of ${maxOutlets} outlets reached. Contact Super Admin to upgrade your outlet quota.`, 'warning');
                                             return;
                                         }
                                         addOutletForm.setData({
@@ -365,14 +412,14 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                         });
                                         setAddOutletModalOpen(true);
                                     }}
-                                    disabled={outlets.length >= 5}
-                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer ${outlets.length >= 5
+                                    disabled={isQuotaFull}
+                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer ${isQuotaFull
                                         ? 'cursor-not-allowed bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'
                                         : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-indigo-500/20'
                                         }`}
                                 >
                                     <Plus className="h-3.5 w-3.5" />
-                                    Add Outlet {outlets.length >= 5 ? '(Full)' : ''}
+                                    Add Outlet {isQuotaFull ? '(Quota Full)' : ''}
                                 </button>
                             </div>
 
@@ -778,7 +825,9 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900 dark:text-white">Add New Outlet</h3>
-                                    <p className="text-xs text-slate-500">Max 5 outlets allowed across system</p>
+                                    <p className="text-xs text-slate-500">
+                                        Max {maxOutlets} outlet{maxOutlets === 1 ? '' : 's'} allowed for your store (Configured by Super Admin)
+                                    </p>
                                 </div>
                             </div>
                             <button

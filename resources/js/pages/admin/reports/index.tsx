@@ -37,7 +37,7 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
 
     const handleFilterChange = (m = month, y = year, s = search, outletVal = activeOutletId) => {
         router.get(
-            '/administration-control/reports',
+            '/store/reports',
             { month: m, year: y, search: s, outlet_id: outletVal },
             { preserveState: true }
         );
@@ -45,14 +45,14 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
 
     const handleExportAll = () => {
         const url = activeOutletId && activeOutletId !== 'all'
-            ? `/administration-control/reports/export?outlet_id=${activeOutletId}`
-            : '/administration-control/reports/export';
+            ? `/store/reports/export?outlet_id=${activeOutletId}`
+            : '/store/reports/export';
         window.location.href = url;
     };
 
     const handleExportEmployee = (empId: number) => {
         const outletParam = activeOutletId && activeOutletId !== 'all' ? `&outlet_id=${activeOutletId}` : '';
-        window.location.href = `/administration-control/reports/export?employee_id=${empId}${outletParam}`;
+        window.location.href = `/store/reports/export?employee_id=${empId}${outletParam}`;
     };
 
     const monthOptions = [

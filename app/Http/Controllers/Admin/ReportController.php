@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\Employee;
-use App\Models\Outlet;
 use App\Services\AttendanceExportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -16,18 +14,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ReportController extends Controller
 {
     /**
-     * Display Monthly Attendance Report filtered by month, year, search, and outlet.
+     * Display Monthly Attendance Report filtered by month, year, search, and outlet for authenticated store.
      */
     public function index(Request $request): Response
     {
+        $admin = Auth::guard('admin')->user();
+
         $month = (int) $request->query('month', Carbon::now()->month);
         $year = (int) $request->query('year', Carbon::now()->year);
         $search = $request->query('search');
         $activeOutletId = $request->query('outlet_id', 'all');
 
-        $outlets = Outlet::withCount('employees')->orderBy('name')->get();
+        $outlets = $admin->outlets()->withCount('employees')->orderBy('name')->get();
 
-        $query = Employee::with('outlet')->orderBy('name');
+        $query = $admin->employees()->with('outlet')->orderBy('name');
 
         if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
             $query->where('outlet_id', (int) $activeOutletId);
@@ -48,7 +48,7 @@ class ReportController extends Controller
         $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
 
         // Load attendances for the given month (and active outlet if specified)
-        $attendancesQuery = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth]);
+        $attendancesQuery = $admin->attendances()->whereBetween('date', [$startOfMonth, $endOfMonth]);
         if ($activeOutletId !== 'all' && ! empty($activeOutletId)) {
             $attendancesQuery->where('outlet_id', (int) $activeOutletId);
         }
@@ -102,9 +102,10 @@ class ReportController extends Controller
      */
     public function export(Request $request, AttendanceExportService $exportService): StreamedResponse
     {
+        $admin = Auth::guard('admin')->user();
         $employeeId = $request->query('employee_id') ? (int) $request->query('employee_id') : null;
         $outletId = $request->query('outlet_id') && $request->query('outlet_id') !== 'all' ? (int) $request->query('outlet_id') : null;
 
-        return $exportService->exportToExcel($employeeId, $outletId);
+        return $exportService->exportToExcel($employeeId, $outletId, $admin->id);
     }
 }

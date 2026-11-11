@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
 {
@@ -18,7 +19,8 @@ class AttendanceController extends Controller
      */
     public function store(StoreAttendanceRequest $request, AttendanceService $attendanceService): RedirectResponse
     {
-        $employee = Employee::findOrFail($request->employee_id);
+        $admin = Auth::guard('admin')->user();
+        $employee = $admin->employees()->findOrFail($request->employee_id);
         $date = $request->date;
 
         // Check if attendance already exists for this date and employee
@@ -33,6 +35,7 @@ class AttendanceController extends Controller
         $metrics = $attendanceService->calculateMetrics($employee, $date, $checkInAt, $checkOutAt);
 
         Attendance::create([
+            'admin_id' => $admin->id,
             'outlet_id' => $employee->outlet_id,
             'employee_id' => $employee->id,
             'date' => $date,
@@ -52,6 +55,11 @@ class AttendanceController extends Controller
      */
     public function update(UpdateAttendanceRequest $request, Attendance $attendance, AttendanceService $attendanceService): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($attendance->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to attendance record.');
+        }
+
         $employee = $attendance->employee;
         $date = Carbon::parse($attendance->date)->toDateString();
 
@@ -77,6 +85,11 @@ class AttendanceController extends Controller
      */
     public function destroy(Attendance $attendance): RedirectResponse
     {
+        $admin = Auth::guard('admin')->user();
+        if ($attendance->admin_id !== $admin->id) {
+            abort(403, 'Unauthorized access to attendance record.');
+        }
+
         $attendance->delete();
 
         return back()->with('success', 'Attendance record deleted successfully.');

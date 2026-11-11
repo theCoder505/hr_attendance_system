@@ -7,7 +7,6 @@ use App\Http\Requests\Admin\UpdateAdminCredentialsRequest;
 use App\Http\Requests\Admin\UpdateAdminProfileRequest;
 use App\Http\Requests\Admin\UpdateSettingsRequest;
 use App\Mail\AdminOtpMail;
-use App\Models\Outlet;
 use App\Models\WebsiteSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,21 +21,25 @@ use Inertia\Response;
 class SettingsController extends Controller
 {
     /**
-     * Display settings page.
+     * Display settings page for authenticated store admin.
      */
     public function index(Request $request): Response
     {
-        $settings = WebsiteSetting::current();
         $admin = Auth::guard('admin')->user();
-        $outlets = Outlet::withCount(['employees', 'attendances'])->orderBy('id')->get();
+        $settings = WebsiteSetting::forAdmin($admin->id);
+        $outlets = $admin->outlets()->withCount(['employees', 'attendances'])->orderBy('id')->get();
 
         return Inertia::render('admin/settings/index', [
             'settings' => $settings,
             'outlets' => $outlets,
             'admin' => [
+                'id' => $admin->id,
+                'uid' => $admin->uid,
+                'store_id' => $admin->store_id,
                 'name' => $admin->name,
                 'email' => $admin->email,
                 'session_time' => $admin->session_time,
+                'max_outlets' => (int) ($admin->max_outlets ?: 5),
                 'two_factor_enabled' => (bool) $admin->two_factor_enabled,
             ],
             'clientIp' => $request->ip(),
@@ -44,11 +47,12 @@ class SettingsController extends Controller
     }
 
     /**
-     * Update website / attendance rules settings.
+     * Update website / attendance rules settings for this store.
      */
     public function updateGeneral(UpdateSettingsRequest $request): RedirectResponse
     {
-        $settings = WebsiteSetting::current();
+        $admin = Auth::guard('admin')->user();
+        $settings = WebsiteSetting::forAdmin($admin->id);
         $data = $request->validated();
         $data['admin_login_2fa_enabled'] = $request->boolean('admin_login_2fa_enabled');
 
@@ -61,7 +65,7 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($settings->logo);
             }
             $data['logo'] = $request->file('logo')->store('settings', 'public');
-        }else{
+        } else {
             $data['logo'] = $settings->logo;
         }
 
@@ -70,13 +74,13 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($settings->favicon);
             }
             $data['favicon'] = $request->file('favicon')->store('settings', 'public');
-        }else{
+        } else {
             $data['favicon'] = $settings->favicon;
         }
 
         $settings->update($data);
 
-        return back()->with('success', 'Website & Attendance settings updated successfully.');
+        return back()->with('success', 'Store & Attendance settings updated successfully.');
     }
 
     /**

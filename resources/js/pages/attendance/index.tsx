@@ -43,6 +43,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
     const fetchStatus = async () => {
         const token = localStorage.getItem('device_token');
         const outletUid = localStorage.getItem('outlet_uid');
+        const storeId = localStorage.getItem('store_id');
         if (!token) {
             setHasToken(false);
             setUnverifiedMessage('Device not verified, contact admin');
@@ -62,6 +63,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             if (outletUid) {
                 headers['X-Outlet-Uid'] = outletUid;
             }
+            if (storeId) {
+                headers['X-Store-Id'] = storeId;
+            }
 
             const res = await fetch('/attendance/status', {
                 headers,
@@ -73,6 +77,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                 if (data.code === 'OFFICE_NETWORK_REQUIRED') {
                     setNetworkError(data.message || 'Please connect to the designated outlet network');
                     showError('Office Network Required', data.message || 'Please connect to the designated outlet WiFi to access attendance functions.');
+                } else if (data.code === 'STORE_MISMATCH') {
+                    setNetworkError(data.message);
+                    showError('Store Mismatch', data.message);
                 } else if (data.code === 'OUTLET_MISMATCH') {
                     setNetworkError(data.message);
                     showError('Outlet Mismatch', data.message);
@@ -88,13 +95,16 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                 if (data.employee?.outlet?.uid && !localStorage.getItem('outlet_uid')) {
                     localStorage.setItem('outlet_uid', data.employee.outlet.uid);
                 }
+                if (data.employee?.store_id && !localStorage.getItem('store_id')) {
+                    localStorage.setItem('store_id', data.employee.store_id);
+                }
                 setActiveAttendance(data.attendance);
                 setTodayRecord(data.todayRecord);
                 setCanCheckIn(data.canCheckIn);
                 setCanCheckOut(data.canCheckOut);
                 setMonthlyStats(data.monthlyStats);
                 setUnverifiedMessage(null);
-                fetchHistory(token, data.employee?.outlet?.uid || outletUid);
+                fetchHistory(token, data.employee?.outlet?.uid || outletUid, data.employee?.store_id || storeId);
             }
         } catch (err) {
             console.error('Attendance status error:', err);
@@ -103,15 +113,19 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         }
     };
 
-    const fetchHistory = async (token: string, currentOutletUid?: string | null) => {
+    const fetchHistory = async (token: string, currentOutletUid?: string | null, currentStoreId?: string | null) => {
         try {
             const outUid = currentOutletUid || localStorage.getItem('outlet_uid');
+            const strId = currentStoreId || localStorage.getItem('store_id');
             const headers: Record<string, string> = {
                 Accept: 'application/json',
                 'X-Device-Token': token,
             };
             if (outUid) {
                 headers['X-Outlet-Uid'] = outUid;
+            }
+            if (strId) {
+                headers['X-Store-Id'] = strId;
             }
 
             const res = await fetch('/attendance/history', {
@@ -152,6 +166,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         try {
             const csrfToken = getCsrfToken();
             const outletUid = localStorage.getItem('outlet_uid');
+            const storeId = localStorage.getItem('store_id');
             const headers: Record<string, string> = {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -159,6 +174,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             };
             if (outletUid) {
                 headers['X-Outlet-Uid'] = outletUid;
+            }
+            if (storeId) {
+                headers['X-Store-Id'] = storeId;
             }
             if (csrfToken) {
                 headers['X-CSRF-TOKEN'] = csrfToken;
@@ -206,6 +224,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         try {
             const csrfToken = getCsrfToken();
             const outletUid = localStorage.getItem('outlet_uid');
+            const storeId = localStorage.getItem('store_id');
             const headers: Record<string, string> = {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -213,6 +232,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             };
             if (outletUid) {
                 headers['X-Outlet-Uid'] = outletUid;
+            }
+            if (storeId) {
+                headers['X-Store-Id'] = storeId;
             }
             if (csrfToken) {
                 headers['X-CSRF-TOKEN'] = csrfToken;
@@ -370,6 +392,12 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                                         <span>{employee.role}</span>
                                         <span>&bull;</span>
                                         <span className="font-mono text-slate-500 dark:text-slate-400">{employee.uid}</span>
+                                        {employee.store_name && (
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-[11px] font-semibold text-purple-700 dark:border-purple-800/60 dark:bg-purple-950/70 dark:text-purple-300">
+                                                <Store className="h-3 w-3" />
+                                                {employee.store_name}
+                                            </span>
+                                        )}
                                         {employee.outlet && (
                                             <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700 dark:border-sky-800/60 dark:bg-sky-950/70 dark:text-sky-300">
                                                 <Store className="h-3 w-3" />
@@ -671,8 +699,20 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             </main>
 
             {/* Footer */}
-            <footer className="relative z-10 border-t border-slate-200 px-4 py-5 text-center text-xs text-slate-500 dark:border-slate-800/80">
-                &copy; {new Date().getFullYear()} {brandname}.
+            <footer className="relative z-10 border-t border-slate-200 px-4 py-6 text-center text-xs text-slate-500 dark:border-slate-800/80">
+                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        &copy; {new Date().getFullYear()} {brandname}. All rights reserved.
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <a href="/attendance" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            Attendance Portal
+                        </a>
+                        <a href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            Contact & Inquiries
+                        </a>
+                    </div>
+                </div>
             </footer>
         </div>
     );

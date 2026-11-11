@@ -90,7 +90,7 @@ export default function AdminDashboard({
         }
 
         router.get(
-            '/administration-control/dashboard',
+            '/store/dashboard',
             {
                 month: newMonth,
                 year: newYear,
@@ -104,7 +104,7 @@ export default function AdminDashboard({
     // Jump to Date
     const handleDateClick = (dateStr: string) => {
         router.get(
-            '/administration-control/dashboard',
+            '/store/dashboard',
             { date: dateStr, month: currentMonth, year: currentYear, outlet_id: activeOutletId },
             { preserveState: true }
         );
@@ -126,7 +126,7 @@ export default function AdminDashboard({
     // Submit Add Record
     const handleAddSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addForm.post('/administration-control/attendances', {
+        addForm.post('/store/attendances', {
             onSuccess: () => {
                 setAddModalOpen(false);
                 addForm.reset();
@@ -139,7 +139,7 @@ export default function AdminDashboard({
         e.preventDefault();
         if (!editingRecord) return;
 
-        editForm.put(`/administration-control/attendances/${editingRecord.id}`, {
+        editForm.put(`/store/attendances/${editingRecord.id}`, {
             onSuccess: () => {
                 setEditModalOpen(false);
                 setEditingRecord(null);
@@ -157,7 +157,7 @@ export default function AdminDashboard({
         );
 
         if (confirmed) {
-            router.delete(`/administration-control/attendances/${record.id}`);
+            router.delete(`/store/attendances/${record.id}`);
         }
     };
 
@@ -189,7 +189,7 @@ export default function AdminDashboard({
                 <button
                     onClick={() =>
                         router.get(
-                            '/administration-control/dashboard',
+                            '/store/dashboard',
                             { date: selectedDate, month: currentMonth, year: currentYear, outlet_id: 'all' },
                             { preserveState: true }
                         )
@@ -210,7 +210,7 @@ export default function AdminDashboard({
                             key={outlet.id}
                             onClick={() =>
                                 router.get(
-                                    '/administration-control/dashboard',
+                                    '/store/dashboard',
                                     { date: selectedDate, month: currentMonth, year: currentYear, outlet_id: outlet.id },
                                     { preserveState: true }
                                 )

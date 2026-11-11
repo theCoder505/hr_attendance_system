@@ -30,10 +30,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            if ($request->is('super-admin') || $request->is('super-admin/*')) {
+                return route('super-admin.login');
+            }
             return route('admin.login');
         });
 
         $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request) {
+            if ($request->is('super-admin') || $request->is('super-admin/*')) {
+                return route('super-admin.dashboard');
+            }
             return route('admin.dashboard');
         });
     })

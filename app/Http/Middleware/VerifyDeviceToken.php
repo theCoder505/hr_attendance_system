@@ -28,7 +28,7 @@ class VerifyDeviceToken
 
         $hash = hash('sha256', $rawToken);
 
-        $employee = Employee::with('outlet')->where('device_token_hash', $hash)->first();
+        $employee = Employee::with(['outlet', 'admin'])->where('device_token_hash', $hash)->first();
 
         if (! $employee || $employee->status !== 1) {
             return response()->json([
@@ -43,6 +43,18 @@ class VerifyDeviceToken
                 'success' => false,
                 'code' => 'DEVICE_TOKEN_EXPIRED',
                 'message' => 'Your device session has expired. Please contact admin for re-verification.',
+            ], 403);
+        }
+
+        // Verify Store ID (Admin Unique ID) if provided by employee browser cache
+        $storeId = $request->header('X-Store-Id') ?? $request->input('store_id');
+        $expectedStoreId = $employee->admin?->store_id ?? $employee->admin?->uid;
+        if (! empty($expectedStoreId) && ! empty($storeId) && $storeId !== $expectedStoreId) {
+            $storeName = $employee->admin?->name ?? 'another store';
+            return response()->json([
+                'success' => false,
+                'code' => 'STORE_MISMATCH',
+                'message' => "Device store mismatch. Assigned to store '{$storeName}' (ID: {$expectedStoreId}).",
             ], 403);
         }
 

@@ -1,115 +1,92 @@
-# Employee Attendance Management System
+# AttendEase Pro - Multi-Store Employee Attendance Management System
 
-A production-ready **Employee Attendance Management System** built with **Laravel 12 (MVC)**, **Inertia.js**, **React 19**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **SweetAlert2**.
+A production-ready **Multi-Tenant / Multi-Store Employee Attendance System** built with **Laravel 12 (MVC)**, **Inertia.js**, **React 19**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **SweetAlert2**.
 
-Designed with clean architecture, strict MVC boundaries, the **Service Pattern**, and engineered specifically to run seamlessly on standard **Shared Hosting environments** (cPanel, DirectAdmin) without requiring a VPS or complex daemon services.
+Designed with clean architecture, strict tenant isolation, the **Service Pattern**, and engineered specifically to run seamlessly on standard **Shared Hosting environments** (cPanel, DirectAdmin) without requiring a VPS or complex daemon services.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Architectural Pillars
 
-### 1. Administration Control (`/administration-control/`)
-* **Custom Route Prefix**: All administrative surfaces are securely hosted under `/administration-control/`.
-* **Two-Factor Email OTP Authentication**: Admin login validates email and password, then dispatches a time-limited 6-digit OTP to the registered administrative email address.
+### 1. Platform Super Admin Portal (`/super-admin/login`)
+* **Dedicated Authentication Guard**: Root administrator portal running on independent session state and security middleware (`super_admin` guard).
+* **Store Tenants CRUD**: Register store accounts with system auto-generated unique Store IDs (`store_id`, e.g. `STR-XXXXXX`), update credentials, and set **Maximum Outlets Quotas** (`max_outlets`).
+* **Real-time Storage Consumption Tracking**: Calculates exact file storage consumed by each store (employee photos, PDF appointment letters, store logos, and favicons) from physical disk files.
+* **Store Employee Oversight**: Super Admin can inspect any store's employee roster, reset device bindings, or remove employees.
+* **Store Expansion Inquiries & Email Reply**: Inspect contact inquiries submitted from the website footer contact form, and send official branded email responses directly from the Super Admin panel.
+* **Profile Security via Email OTP**: Super Admin can change email and password only after validating a 6-digit verification code dispatched to their current email.
+
+### 2. Store Owner Administration Portal (`/store/login`)
+* **Renamed Route Prefix**: Administrative surfaces are cleanly hosted under `/store/` (e.g. `/store/login`, `/store/dashboard`, `/store/employees`, `/store/reports`, `/store/settings`).
+* **Strict Tenant Data Isolation**: Each store admin has their own outlets, employees, attendances, and settings. Store A's data never overlaps with Store B.
+* **Maximum Outlets Quota Enforcement**: Stores can add branches up to their Super Admin-assigned limit (`max_outlets`). Attempts to exceed quota are safely rejected.
+* **Two-Factor Email OTP Authentication**: Store login validates email and password, then dispatches a time-limited 6-digit OTP to the registered store email.
 * **Session Inactivity Timeout Middleware**: Automatic logout when an administrator is inactive for longer than their configured `session_time` (default: 30 minutes).
-* **Interactive Month Calendar & Day Inspector**:
-  * Visual calendar grid highlighting days of the month with daily metrics (present, late, early leave, overtime).
-  * Fast date jump and search to view employee attendance for any selected date.
-* **Manual Attendance Overrides**:
-  * Ability to add a manual attendance record for any employee on a selected date.
-  * Inline editing of Check-In and Check-Out times with automated recalculation of Late, Early Leave, and Overtime values (`is_manual = true`).
-* **Employee Management (CRUD)**:
-  * Full employee profiles: Name, Phone, Role, Work Description, Salary, Working Hours, Scheduled Shift Times, Joining Date, Photo upload, and PDF Appointment Letter upload.
-  * Cascade deletion: Removing an employee cleanly purges their files from storage and removes all associated attendance logs.
-  * Status badges: *Pending Verification* vs. *Active / Verified*.
-* **Monthly Attendance Reports & XLSX Export**:
-  * Monthly aggregation per employee: Days present, late occurrences & total minutes, early leave occurrences & minutes, and overtime occurrences & minutes.
-  * Styled Microsoft Excel (`.xlsx`) export for all records or filtered by an individual employee using PhpSpreadsheet.
-* **Settings & Security**:
-  * General branding: Custom brand name, header logo, and favicon upload.
-  * Office rules: Configurable office starting time, closing time, office IPv4 whitelist, and missing check-out early leave penalty minutes.
-  * Admin profile update: Change name and session timeout duration.
-  * **2FA Protected Credentials Change**: Updating the administrator's email or password strictly requires generating and verifying an OTP sent to the current email before alterations take effect.
+* **Interactive Month Calendar & Day Inspector**: Fast date jump and search to view employee attendance for any selected date and filter by branch outlet.
+* **Manual Attendance Overrides**: Add or edit manual attendance records with automated recalculation of Late, Early Leave, and Overtime values (`is_manual = true`).
+* **Monthly Attendance Reports & XLSX Export**: Monthly aggregation per employee with styled Microsoft Excel (`.xlsx`) export for all records or filtered by outlet/employee.
+
+### 3. Surface Website Contact Page (`/contact`)
+* **Accessible via Website Footer**: Links in public attendance footer allow prospective business owners to reach platform owners.
+* **Frontend Security Captcha**: Dynamic, distorted alphanumeric canvas captcha generated in frontend JavaScript with refresh capability.
+* **Email Verification with OTP**: User enters email and verifies ownership with a 6-digit verification code before the contact box can be submitted.
+* **Structured Inquiry Box**: Submits Company Name, Subject, Email, Phone, Total Outlets Needed, Average Staff per Outlet, and Message.
+* **Admin-Reviewed Flow**: Submissions do not send emails automatically; they are saved in the database for the Super Admin to review and reply to via an official email template.
+
+### 4. Employee Verification & Attendance Cache Setup
+* **Unique Store Identifier Binding**: Newly registered employees are associated with their store's unique `store_id`.
+* **Hardware & Browser Binding**: Opening the single-use `/verify/{token}` link binds:
+  * `device_token`: High-entropy cryptographic token in browser `localStorage`.
+  * `outlet_uid`: Assigned outlet unique ID in browser `localStorage`.
+  * `store_id`: Admin's unique store ID in browser `localStorage`.
+* **Dual Header Verification**: Daily attendance calls send `X-Device-Token`, `X-Outlet-Uid`, and `X-Store-Id`. The server checks the store ID and rejects unauthorized or cross-store tokens with HTTP 403 `STORE_MISMATCH`.
+* **Office Network Enforcement**: Validates request IP against designated outlet WiFi IPs.
+* **Overnight Shifts & Auto-Closing**: Supports cross-midnight shifts and automatically closes missing check-outs with early-leave penalties.
 
 ---
 
-### 2. Employee Verification & Device Binding
-1. **Pending Status**: Newly registered employees start with status `0` (Pending) and an auto-generated high-entropy verification token valid for 7 days.
-2. **Single-Use Verification Link**: Admin copies the link format `/verify/{token}` and provides it to the employee.
-3. **Hardware Binding**: When the employee opens the link on their device browser:
-   * The server generates a cryptographic raw device token and saves only its SHA-256 hash in `device_token_hash`.
-   * Sets `device_token_expires_at = now() + 1 month`.
-   * Updates employee status to `1` (Active/Verified) and voids the single-use verification token.
-   * The raw token is stored in the browser's `localStorage` (`device_token`).
-4. **Device Re-verification / Change Device**:
-   * Admin can click **"Re-verify / change device"** on the employee row.
-   * This immediately clears the existing device hash, sets status back to `0` (voiding the previous device), and generates a new verification link.
-5. **Rolling Session Renewal**:
-   * Every successful daily check-in automatically extends `device_token_expires_at` by another 1 month.
-
----
-
-### 3. Employee Portal (`/attendance`)
-* **Device Authentication**: Requests carry the `X-Device-Token` header read from `localStorage`. The server verifies the SHA-256 hash against active employees.
-* **Office Network Enforcement**: Checks `request()->ip()` against authorized office WiFi / network IP addresses configured in settings (supports up to 5 WiFi addresses, or wildcard `*`). If off-network, displays: *"Please come to the office and use your registered device"*.
-* **State-Aware Actions**:
-  * **Clock In**: State-aware button available when no open shift exists for today. Calculates late minutes if clocking in after scheduled start time.
-  * **Clock Out**: State-aware button available when a shift is active. Automatically computes Early Leave or Overtime minutes based on the employee's shift end time.
-* **Overnight Shifts**:
-  * An unclosed attendance record from the previous calendar day stays active and checkable-out until the employee's scheduled shift start time on the following day (e.g., checking out at 2:00 AM counts toward the original shift date).
-* **Missing Check-Out Handling**:
-  * Once the next check-in window begins without a recorded check-out, the system automatically closes the open shift as an early leave using the configured `missing_checkout_early_leave_minutes` penalty.
-  * Implemented both through an automated console command and real-time on-the-fly resolution in `AttendanceService` (eliminating VPS dependency).
-
----
-
-## 🏗️ Architecture & Design Patterns
-
-* **Strict MVC Separation**:
-  * **Models**: `Admin`, `Employee`, `Attendance`, `WebsiteSetting` with explicit relationship bindings, casts, and boot lifecycle events (e.g. file deletion cascades).
-  * **Controllers**: Thin controllers strictly handling HTTP request orchestration.
-  * **Form Requests**: Dedicated validation classes under `App\Http\Requests\Admin\*`.
-  * **Service Pattern**:
-    * `App\Services\AttendanceService`: Encapsulates check-in, check-out, overnight shift boundaries, missing checkout auto-closing, and late/early/overtime calculations.
-    * `App\Services\AttendanceExportService`: Encapsulates formatted XLSX workbook generation.
-* **Custom Middlewares**:
-  * `AdminSessionTimeout`: Monitors admin activity timestamp and forces logout when idle.
-  * `VerifyDeviceToken`: Validates SHA-256 device token hash and binds the verified employee to the request attributes.
-  * `OfficeNetworkMiddleware`: Validates client IP against authorized office network addresses.
-* **UI & UX**:
-  * Built using Tailwind CSS, React 19, Lucide icons, and SweetAlert2 (`swalCustom`).
-
----
-
-## 🔑 Default Administrator Credentials
+## 🔑 Default Credentials
 
 Seeded automatically upon migration:
 
-* **Admin Portal URL**: `http://localhost:8000/administration-control/login`
+### 1. Platform Super Admin
+* **URL**: `http://localhost:8000/super-admin/login`
+* **Email**: `admin@super.com`
+* **Password**: `SuperAdmin@1234`
+
+### 2. Store Owner (Admin)
+* **URL**: `http://localhost:8000/store/login`
 * **Email**: `admin@attendance.com`
 * **Password**: `MyPass@2026#`
-* **Employee Portal URL**: `http://localhost:8000/attendance`
+* **Store ID**: `STR-MAIN01`
 
-> **Note on OTP Delivery**: In local development (`MAIL_MAILER=log`), the 6-digit OTP code is written to `storage/logs/laravel.log`. In production, configure your SMTP settings in `.env` to send real emails to your inbox.
+### 3. Employee Portal & Contact
+* **Employee Portal URL**: `http://localhost:8000/attendance`
+* **Store Owner Contact Page**: `http://localhost:8000/contact`
+
+> **Note on OTP Delivery**: In local development (`MAIL_MAILER=log`), 6-digit OTP codes and replies are written to `storage/logs/laravel.log`. In production, configure your SMTP settings in `.env`.
+
+---
+
+## 📖 Comprehensive User Manual
+
+For an in-depth, step-by-step walkthrough covering how stores are created by the platform, how store owners manage outlets and staff, and how employees record attendance, see:
+
+👉 **[USER_MANUAL.md](USER_MANUAL.md)**
 
 ---
 
 ## 🚀 Installation & Local Setup
 
 ### Prerequisites
-* PHP 8.2 or higher (with `pdo_mysql`, `mbstring`, `fileinfo`, `gd`, `zip` extensions enabled)
-* MySQL or MariaDB
+* PHP 8.2 or higher (`pdo_mysql`, `mbstring`, `fileinfo`, `gd`, `zip` extensions enabled)
+* MySQL / MariaDB
 * Composer 2.x
 * Node.js 18+ and npm
 
 ### Steps
 
-1. **Clone & Enter Workspace**:
-   ```bash
-   cd c:/xampp/htdocs/laravelwebsites/products/attendance_system
-   ```
-
-2. **Environment Configuration**:
+1. **Environment Configuration**:
    Verify your `.env` database and mail configuration:
    ```env
    APP_NAME="AttendEase Pro"
@@ -127,94 +104,36 @@ Seeded automatically upon migration:
    MAIL_MAILER=log
    ```
 
-3. **Install Dependencies**:
+2. **Install Dependencies**:
    ```bash
    composer install
    npm install
    ```
 
-4. **Run Migrations & Seed Default Data**:
+3. **Run Migrations & Seed Default Data**:
    ```bash
    php artisan migrate --seed
    ```
 
-5. **Create Storage Symbolic Link**:
-   ```bash
-   php artisan storage:link
-   ```
-
-6. **Build Frontend Assets**:
+4. **Build Frontend Assets**:
    ```bash
    npm run build
    ```
 
-7. **Start Application Server**:
+5. **Start Local Development Server**:
    ```bash
    php artisan serve
    ```
-   Navigate to:
-   - Admin Login: `http://127.0.0.1:8000/administration-control/login`
-   - Employee Portal: `http://127.0.0.1:8000/attendance`
+   Open `http://localhost:8000` in your browser.
 
 ---
 
-## 🌐 Shared Hosting Deployment Guide (cPanel / DirectAdmin)
+## 🧪 Testing
 
-This system is engineered so that **no VPS or continuous node/queue background processes are required**.
+Execute the automated test suite:
 
-### 1. Document Root Configuration
-* On shared hosting, upload the files to your domain's folder.
-* Set the domain's **DocumentRoot** to point to the `public/` directory (e.g. `/home/user/public_html/public` or `/home/user/attendance_system/public`).
-* If your host forces `public_html` as the root, move the contents of `public/` into `public_html` and adjust `index.php` to reference `../vendor/autoload.php` and `../bootstrap/app.php`.
-
-### 2. File Permissions
-Ensure the following directories are writable by the web server (chmod `775` or `755`):
-* `storage/`
-* `bootstrap/cache/`
-
-### 3. Database & Mail Setup
-1. Create a MySQL database and user in cPanel.
-2. Update `.env` with the database credentials.
-3. Configure your hosting SMTP credentials:
-   ```env
-   MAIL_MAILER=smtp
-   MAIL_HOST=mail.yourdomain.com
-   MAIL_PORT=465
-   MAIL_USERNAME=noreply@yourdomain.com
-   MAIL_PASSWORD=your_email_password
-   MAIL_ENCRYPTION=ssl
-   MAIL_FROM_ADDRESS="noreply@yourdomain.com"
-   MAIL_FROM_NAME="AttendEase Pro"
-   ```
-4. Run migrations via cPanel Terminal or phpMyAdmin import:
-   ```bash
-   php artisan migrate --seed --force
-   php artisan storage:link
-   ```
-
-### 4. Cron Job (Automated Missing Check-outs)
-To run the automated checkout closer hourly, add this single cron entry in cPanel Cron Jobs:
 ```bash
-* * * * * cd /home/username/public_html && php artisan schedule:run >> /dev/null 2>&1
+php artisan test tests/Feature/MultiTenantAndSuperAdminTest.php
 ```
-*Even if cron is not set up on shared hosting, `AttendanceService` automatically detects and closes unclosed past shifts whenever employees access the portal or check in.*
 
----
-
-## 🛠️ Console Commands Reference
-
-* **Close Missing Checkouts Manually**:
-  ```bash
-  php artisan attendance:close-missing-checkouts
-  ```
-* **Optimize Cache for Production**:
-  ```bash
-  php artisan config:cache
-  php artisan route:cache
-  php artisan view:cache
-  ```
-
----
-
-## 📄 License
-This application is proprietary software. All rights reserved.
+All 6 test cases verify Super Admin login, store creation, max outlets enforcement, tenant isolation, attendance `store_id` cache verification, contact inquiries with OTP, and profile OTP updates.

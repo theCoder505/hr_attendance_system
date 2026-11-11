@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WebsiteSetting extends Model
 {
@@ -12,6 +13,7 @@ class WebsiteSetting extends Model
     protected $table = 'website_settings';
 
     protected $fillable = [
+        'admin_id',
         'brandname',
         'logo',
         'favicon',
@@ -30,6 +32,40 @@ class WebsiteSetting extends Model
         ];
     }
 
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    /**
+     * Get or create setting for a specific admin or fallback to global.
+     */
+    public static function forAdmin(?int $adminId): self
+    {
+        if ($adminId) {
+            $setting = static::where('admin_id', $adminId)->first();
+            if ($setting) {
+                return $setting;
+            }
+
+            // Create new settings record copied from global defaults
+            $global = static::first();
+            return static::create([
+                'admin_id' => $adminId,
+                'brandname' => $global->brandname ?? 'AttendEase Store',
+                'logo' => null,
+                'favicon' => null,
+                'office_starting_time' => $global->office_starting_time ?? '09:00:00',
+                'office_closing_time' => $global->office_closing_time ?? '17:00:00',
+                'office_ipv4_addr' => $global->office_ipv4_addr ?? '127.0.0.1',
+                'missing_checkout_early_leave_minutes' => $global->missing_checkout_early_leave_minutes ?? 60,
+                'admin_login_2fa_enabled' => true,
+            ]);
+        }
+
+        return static::current();
+    }
+
     /**
      * Get or create the singleton website settings row.
      */
@@ -39,6 +75,7 @@ class WebsiteSetting extends Model
 
         if (! $setting) {
             $setting = static::create([
+                'admin_id' => null,
                 'brandname' => 'AttendEase Pro',
                 'logo' => null,
                 'favicon' => null,
@@ -55,6 +92,8 @@ class WebsiteSetting extends Model
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::saved(function () {
             static::generateManifest();
         });
