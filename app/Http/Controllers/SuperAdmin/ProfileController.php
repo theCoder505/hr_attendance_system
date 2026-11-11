@@ -92,6 +92,23 @@ class ProfileController extends Controller
 
         $branding->update($data);
 
+        // Cascade branding updates to all store settings so all owner sidebars and outlets reflect the latest assets
+        $cascade = [];
+        if (isset($data['logo'])) {
+            $cascade['logo'] = $data['logo'];
+        }
+        if (isset($data['favicon'])) {
+            $cascade['favicon'] = $data['favicon'];
+        }
+        if (isset($data['brandname'])) {
+            $cascade['brandname'] = $data['brandname'];
+        }
+        if (! empty($cascade)) {
+            WebsiteSetting::whereNotNull('admin_id')->update($cascade);
+        }
+
+        WebsiteSetting::generateManifest();
+
         return back()->with('success', 'Global platform Branding & Identity updated successfully.');
     }
 

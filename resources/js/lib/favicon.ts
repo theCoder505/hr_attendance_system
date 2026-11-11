@@ -2,12 +2,13 @@
  * Updates the browser's dynamic favicon and touch icon.
  * Fallback to /favicon.ico when no custom favicon is configured.
  */
-export function updateDynamicFavicon(faviconPath?: string | null): void {
+export function updateDynamicFavicon(faviconPath?: string | null, version?: string | number): void {
     if (typeof document === 'undefined') {
         return;
     }
 
-    const faviconUrl = faviconPath ? `/storage/${faviconPath}` : '/favicon.ico';
+    const versionParam = version ? `?v=${encodeURIComponent(String(version))}` : '';
+    const faviconUrl = faviconPath ? `/storage/${faviconPath}${versionParam}` : `/favicon.ico${versionParam}`;
 
     let iconLink = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
     if (!iconLink) {

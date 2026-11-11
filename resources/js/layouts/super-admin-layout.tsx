@@ -79,6 +79,9 @@ export default function SuperAdminLayout({ title, children }: Props) {
 
     const currentRoute = typeof window !== 'undefined' ? window.location.pathname : '';
     const brandname = settings?.brandname || name || 'AttendEase';
+    const logoVersion = settings?.updated_at ? `?v=${encodeURIComponent(settings.updated_at)}` : '';
+    const logoUrl = settings?.logo ? `/storage/${settings.logo}${logoVersion}` : null;
+    const faviconUrl = settings?.favicon ? `/storage/${settings.favicon}${logoVersion}` : null;
 
     const navItems = [
         {
@@ -134,9 +137,9 @@ export default function SuperAdminLayout({ title, children }: Props) {
                         </button>
 
                         <Link href="/super-admin/dashboard" className="flex items-center gap-2 overflow-hidden min-w-0">
-                            {settings?.logo ? (
+                            {logoUrl ? (
                                 <img
-                                    src={`/storage/${settings.logo}`}
+                                    src={logoUrl}
                                     alt="Logo"
                                     className="h-7 w-auto max-w-[140px] object-contain dark:invert dark:brightness-0"
                                 />
@@ -185,9 +188,9 @@ export default function SuperAdminLayout({ title, children }: Props) {
                             {/* Expanded state on desktop */}
                             <div className={cn("flex items-center justify-between w-full min-w-0", isMinimized && "lg:hidden")}>
                                 <Link href="/super-admin/dashboard" className="flex items-center gap-2.5 overflow-hidden min-w-0">
-                                    {settings?.logo ? (
+                                    {logoUrl ? (
                                         <img
-                                            src={`/storage/${settings.logo}`}
+                                            src={logoUrl}
                                             alt="Logo"
                                             className="max-h-8 w-auto max-w-[150px] object-contain dark:invert dark:brightness-0"
                                         />
@@ -216,10 +219,10 @@ export default function SuperAdminLayout({ title, children }: Props) {
                                             className="flex items-center justify-center p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                             aria-label={brandname}
                                         >
-                                            {settings?.favicon ? (
-                                                <img src={`/storage/${settings.favicon}`} alt="Logo" className="h-7 w-7 object-contain" />
-                                            ) : settings?.logo ? (
-                                                <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-7 object-contain dark:invert dark:brightness-0" />
+                                            {faviconUrl ? (
+                                                <img src={faviconUrl} alt="Logo" className="h-7 w-7 object-contain" />
+                                            ) : logoUrl ? (
+                                                <img src={logoUrl} alt="Logo" className="h-7 w-7 object-contain dark:invert dark:brightness-0" />
                                             ) : (
                                                 <div className="h-8 w-8 rounded-xl bg-purple-600 flex items-center justify-center text-white shadow-md shadow-purple-600/30">
                                                     <Shield className="h-4 w-4" />

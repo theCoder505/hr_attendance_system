@@ -20,8 +20,9 @@ createInertiaApp({
         const root = createRoot(el);
 
         const initialFavicon = (props.initialPage.props as any)?.settings?.favicon;
+        const initialVersion = (props.initialPage.props as any)?.settings?.updated_at;
         if (initialFavicon !== undefined) {
-            updateDynamicFavicon(initialFavicon);
+            updateDynamicFavicon(initialFavicon, initialVersion);
         }
 
         root.render(<App {...props} />);
@@ -34,8 +35,9 @@ createInertiaApp({
 // Update dynamic favicon whenever Inertia navigation or mutation finishes successfully
 router.on('success', (event) => {
     const favicon = (event.detail.page.props as any)?.settings?.favicon;
+    const version = (event.detail.page.props as any)?.settings?.updated_at;
     if (favicon !== undefined) {
-        updateDynamicFavicon(favicon);
+        updateDynamicFavicon(favicon, version);
     }
 });
 

@@ -45,12 +45,30 @@ class WebsiteSetting extends Model
     {
         if ($adminId) {
             $setting = static::where('admin_id', $adminId)->first();
+            $global = static::current();
+
             if ($setting) {
+                // Ensure logo and favicon always fall back to the active global platform assets if missing or stale on disk
+                $needsSave = false;
+                if (empty($setting->logo) || ! \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo)) {
+                    $setting->logo = $global->logo;
+                    $needsSave = true;
+                }
+                if (empty($setting->favicon) || ! \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->favicon)) {
+                    $setting->favicon = $global->favicon;
+                    $needsSave = true;
+                }
+                if (empty($setting->brandname)) {
+                    $setting->brandname = $global->brandname;
+                    $needsSave = true;
+                }
+                if ($needsSave) {
+                    $setting->saveQuietly();
+                }
                 return $setting;
             }
 
             // Create new settings record copied from global defaults
-            $global = static::current();
             return static::create([
                 'admin_id' => $adminId,
                 'brandname' => $global->brandname ?? 'AttendEase Store',

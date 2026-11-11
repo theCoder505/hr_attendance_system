@@ -152,6 +152,9 @@ export default function AdminLayout({ children, title }: Props) {
     ];
 
     const brandname = settings?.brandname || 'AttendEase Pro';
+    const logoVersion = settings?.updated_at ? `?v=${encodeURIComponent(settings.updated_at)}` : '';
+    const logoUrl = settings?.logo ? `/storage/${settings.logo}${logoVersion}` : null;
+    const faviconUrl = settings?.favicon ? `/storage/${settings.favicon}${logoVersion}` : null;
 
     return (
         <TooltipProvider delayDuration={150}>
@@ -160,8 +163,8 @@ export default function AdminLayout({ children, title }: Props) {
                 <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                         <Link href="/store/dashboard" className="flex items-center gap-2 overflow-hidden min-w-0">
-                            {settings?.logo ? (
-                                <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-auto max-w-[140px] object-contain dark:invert dark:brightness-0" />
+                            {logoUrl ? (
+                                <img src={logoUrl} alt="Logo" className="h-7 w-auto max-w-[140px] object-contain dark:invert dark:brightness-0" />
                             ) : (
                                 <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
                                     <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30 shrink-0">
@@ -204,8 +207,8 @@ export default function AdminLayout({ children, title }: Props) {
                             {/* Expanded state on desktop or mobile view */}
                             <div className={cn("flex items-center justify-between w-full min-w-0", isMinimized && "lg:hidden")}>
                                 <Link href="/store/dashboard" className="flex items-center gap-2.5 overflow-hidden min-w-0">
-                                    {settings?.logo ? (
-                                        <img src={`/storage/${settings.logo}`} alt="Logo" className="max-h-8 w-auto max-w-[150px] object-contain dark:invert dark:brightness-0" />
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt="Logo" className="max-h-8 w-auto max-w-[150px] object-contain dark:invert dark:brightness-0" />
                                     ) : (
                                         <div className="flex items-center gap-2.5 font-bold text-base text-slate-900 dark:text-white tracking-tight">
                                             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30 shrink-0">
@@ -226,10 +229,10 @@ export default function AdminLayout({ children, title }: Props) {
                                             className="flex items-center justify-center p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                             aria-label={brandname}
                                         >
-                                            {settings?.favicon ? (
-                                                <img src={`/storage/${settings.favicon}`} alt="Logo" className="h-7 w-7 object-contain" />
-                                            ) : settings?.logo ? (
-                                                <img src={`/storage/${settings.logo}`} alt="Logo" className="h-7 w-7 object-contain dark:invert dark:brightness-0" />
+                                            {faviconUrl ? (
+                                                <img src={faviconUrl} alt="Logo" className="h-7 w-7 object-contain" />
+                                            ) : logoUrl ? (
+                                                <img src={logoUrl} alt="Logo" className="h-7 w-7 object-contain dark:invert dark:brightness-0" />
                                             ) : (
                                                 <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30">
                                                     <Shield className="h-4 w-4" />
