@@ -21,6 +21,8 @@ class StoreEmployeeRequest extends FormRequest
             'work_desc' => ['nullable', 'string'],
             'salary' => ['required', 'numeric', 'min:0'],
             'working_hours' => ['required', 'numeric', 'min:1', 'max:24'],
+            'working_days' => ['nullable', 'array'],
+            'working_days.*' => ['string', 'in:sat,sun,mon,tue,wed,thu,fri'],
             'check_in_time' => ['nullable', 'string'],
             'check_out_time' => ['nullable', 'string'],
             'joining_date' => ['required', 'date', 'before_or_equal:' . \Carbon\Carbon::today(config('app.timezone', 'Asia/Dhaka'))->toDateString()],

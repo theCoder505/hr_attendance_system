@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/layouts/admin-layout';
-import { formatMinutes } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot } from '@/lib/utils';
 import {
     FileSpreadsheet,
     Download,
     Search,
     Store,
     Users,
+    Clock,
 } from 'lucide-react';
 
 interface OutletItem {
@@ -45,15 +46,13 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
     };
 
     const handleExportAll = () => {
-        const url = activeOutletId && activeOutletId !== 'all'
-            ? `/store/reports/export?outlet_id=${activeOutletId}`
-            : '/store/reports/export';
-        window.location.href = url;
+        const outletParam = activeOutletId && activeOutletId !== 'all' ? `&outlet_id=${activeOutletId}` : '';
+        window.location.href = `/store/reports/export?month=${month}&year=${year}${outletParam}`;
     };
 
     const handleExportEmployee = (empId: number) => {
         const outletParam = activeOutletId && activeOutletId !== 'all' ? `&outlet_id=${activeOutletId}` : '';
-        window.location.href = `/store/reports/export?employee_id=${empId}${outletParam}`;
+        window.location.href = `/store/reports/export?employee_id=${empId}&month=${month}&year=${year}${outletParam}`;
     };
 
     const monthOptions = [
@@ -79,6 +78,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
     const totalLateMinutes = reports.reduce((acc, r) => acc + r.late_total_minutes, 0);
     const totalEarlyLeaveMinutes = reports.reduce((acc, r) => acc + r.early_leave_total_minutes, 0);
     const totalOvertimeMinutes = reports.reduce((acc, r) => acc + r.overtime_total_minutes, 0);
+    const totalActualWorkedMinutes = reports.reduce((acc, r) => acc + (r.actual_worked_minutes || 0), 0);
+    const totalScheduledWorkedMinutes = reports.reduce((acc, r) => acc + (r.scheduled_worked_minutes || 0), 0);
 
     return (
         <AdminLayout title="Monthly Attendance Reports">
@@ -188,11 +189,19 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
             </div>
 
             {/* Quick Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
                     <span className="text-xs text-slate-500 font-medium">Total Present Days</span>
                     <div className="text-xl font-bold text-slate-900 dark:text-white mt-1">
                         {totalPresentDays} <span className="text-xs font-normal text-slate-400">shifts</span>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+                    <span className="text-xs text-slate-500 font-medium">Total Work Hours</span>
+                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                        {formatMinutesToHoursDot(totalActualWorkedMinutes)}
+                        <span className="text-xs font-normal text-slate-400">/{formatMinutesToHoursDot(totalScheduledWorkedMinutes)}</span>
                     </div>
                 </div>
 
@@ -242,6 +251,9 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                     <div className="min-w-40 text-center">Days Present</div>
                                 </th>
                                 <th className="py-3.5">
+                                    <div className="min-w-40 text-center">Work Hours</div>
+                                </th>
+                                <th className="py-3.5">
                                     <div className="min-w-40 text-center">Late Log</div>
                                 </th>
                                 <th className="py-3.5">
@@ -258,7 +270,7 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {reports.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center text-slate-400">
+                                    <td colSpan={7} className="py-16 text-center text-slate-400">
                                         <Users className="h-10 w-10 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
                                         <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No report records available for this month.</p>
                                     </td>
@@ -290,6 +302,20 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                                     {emp.present_days}
                                                 </span>
                                                 <span className="text-slate-400 text-[11px] ml-1">days</span>
+                                            </div>
+                                        </td>
+
+                                        <td className="py-3.5">
+                                            <div className="min-w-40 text-center">
+                                                <div>
+                                                    <span className={`font-mono font-bold text-sm ${emp.actual_worked_minutes >= emp.scheduled_worked_minutes ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                                        {formatMinutesToHoursDot(emp.actual_worked_minutes)}
+                                                    </span>
+                                                    <span className="text-slate-400 text-sm font-medium">/{formatMinutesToHoursDot(emp.scheduled_worked_minutes)}</span>
+                                                    <p className="text-[11px] text-slate-400 mt-0.5 font-sans">
+                                                        {emp.scheduled_work_days} work days ({emp.working_hours_per_day}h/day)
+                                                    </p>
+                                                </div>
                                             </div>
                                         </td>
 

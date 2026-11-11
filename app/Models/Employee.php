@@ -25,6 +25,7 @@ class Employee extends Model
         'work_desc',
         'salary',
         'working_hours',
+        'working_days',
         'check_in_time',
         'check_out_time',
         'joining_date',
@@ -42,6 +43,7 @@ class Employee extends Model
         return [
             'salary' => 'decimal:2',
             'working_hours' => 'decimal:2',
+            'working_days' => 'array',
             'status' => 'integer',
             'joining_date' => 'date',
             'device_token_expires_at' => 'datetime',
@@ -56,6 +58,10 @@ class Employee extends Model
         static::creating(function ($employee) {
             if (empty($employee->uid)) {
                 $employee->uid = 'EMP-' . strtoupper(Str::random(7));
+            }
+
+            if (empty($employee->working_days)) {
+                $employee->working_days = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'];
             }
 
             // Defaults for check_in_time and check_out_time from website settings

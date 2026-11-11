@@ -39,6 +39,16 @@ interface Props {
     currencySymbol?: string;
 }
 
+export const ALL_DAYS = [
+    { key: 'sat', label: 'Saturday', short: 'Sat' },
+    { key: 'sun', label: 'Sunday', short: 'Sun' },
+    { key: 'mon', label: 'Monday', short: 'Mon' },
+    { key: 'tue', label: 'Tuesday', short: 'Tue' },
+    { key: 'wed', label: 'Wednesday', short: 'Wed' },
+    { key: 'thu', label: 'Thursday', short: 'Thu' },
+    { key: 'fri', label: 'Friday', short: 'Fri' },
+];
+
 export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPerOutlet = 25, filters, defaultTimes, appUrl, currencySymbol = 'BDT' }: Props) {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -61,6 +71,7 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
         outlet_id: outlets.length > 0 ? String(outlets[0].id) : '',
         salary: '15000',
         working_hours: '8.00',
+        working_days: ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'] as string[],
         check_in_time: defaultTimes.check_in_time || '09:00',
         check_out_time: defaultTimes.check_out_time || '17:00',
         joining_date: todayStr,
@@ -76,7 +87,8 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
         work_desc: '',
         outlet_id: '',
         salary: '',
-        working_hours: '',
+        working_hours: '8.00',
+        working_days: ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'] as string[],
         check_in_time: '',
         check_out_time: '',
         joining_date: '',
@@ -180,7 +192,10 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
             work_desc: emp.work_desc || '',
             outlet_id: String(emp.outlet_id || (outlets.length > 0 ? outlets[0].id : '')),
             salary: String(emp.salary),
-            working_hours: String(emp.working_hours),
+            working_hours: String(emp.working_hours || '8.00'),
+            working_days: Array.isArray(emp.working_days) && emp.working_days.length > 0
+                ? emp.working_days
+                : ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'],
             check_in_time: emp.check_in_time.substring(0, 5),
             check_out_time: emp.check_out_time.substring(0, 5),
             joining_date: emp.joining_date.substring(0, 10),
@@ -689,6 +704,44 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                     />
                                     <span className="text-[11px] text-slate-400">Defaults to office closing time</span>
                                 </div>
+
+                                <div className="sm:col-span-2">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            Working Days (Weekly Schedule) *
+                                        </label>
+                                        <span className="text-[11px] text-slate-400">
+                                            Unticked days = Weekends / Off-days
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                                        {ALL_DAYS.map((day) => {
+                                            const isChecked = createForm.data.working_days.includes(day.key);
+                                            return (
+                                                <button
+                                                    key={day.key}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const next = isChecked
+                                                            ? createForm.data.working_days.filter((d) => d !== day.key)
+                                                            : [...createForm.data.working_days, day.key];
+                                                        createForm.setData('working_days', next);
+                                                    }}
+                                                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                                                        isChecked
+                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20'
+                                                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <span>{day.short}</span>
+                                                    <span className="text-[9px] font-normal opacity-85 mt-0.5">
+                                                        {isChecked ? 'Work' : 'Off'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
 
                             <div>
@@ -862,6 +915,20 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                 </div>
 
                                 <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        Daily Working Hours *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        required
+                                        value={editForm.data.working_hours}
+                                        onChange={(e) => editForm.setData('working_hours', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                                    />
+                                </div>
+
+                                <div>
                                     <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Check In Time</label>
                                     <input
                                         type="time"
@@ -881,6 +948,44 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                         onChange={(e) => editForm.setData('check_out_time', e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                                     />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            Working Days (Weekly Schedule) *
+                                        </label>
+                                        <span className="text-[11px] text-slate-400">
+                                            Unticked days = Weekends / Off-days
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                                        {ALL_DAYS.map((day) => {
+                                            const isChecked = editForm.data.working_days.includes(day.key);
+                                            return (
+                                                <button
+                                                    key={day.key}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const next = isChecked
+                                                            ? editForm.data.working_days.filter((d) => d !== day.key)
+                                                            : [...editForm.data.working_days, day.key];
+                                                        editForm.setData('working_days', next);
+                                                    }}
+                                                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                                                        isChecked
+                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20'
+                                                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <span>{day.short}</span>
+                                                    <span className="text-[9px] font-normal opacity-85 mt-0.5">
+                                                        {isChecked ? 'Work' : 'Off'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
 
@@ -1016,6 +1121,29 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                     <span className="font-semibold text-slate-900 dark:text-white">
                                         {selectedEmployee.working_hours} hrs/day ({currencySymbol} {Number(selectedEmployee.salary).toLocaleString()})
                                     </span>
+                                </div>
+                                <div className="col-span-2 border-t border-slate-200 dark:border-slate-700 pt-2.5">
+                                    <span className="mb-1 block text-slate-400">Weekly Working Days:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {ALL_DAYS.map((d) => {
+                                            const days = Array.isArray(selectedEmployee.working_days) && selectedEmployee.working_days.length > 0
+                                                ? selectedEmployee.working_days
+                                                : ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'];
+                                            const isWork = days.includes(d.key);
+                                            return (
+                                                <span
+                                                    key={d.key}
+                                                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                                        isWork
+                                                            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+                                                            : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 line-through'
+                                                    }`}
+                                                >
+                                                    {d.short}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
 

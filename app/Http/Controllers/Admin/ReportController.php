@@ -44,8 +44,11 @@ class ReportController extends Controller
         $employees = $query->get();
 
         // Calculate start and end date of the month
-        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
-        $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+        $startOfMonthCarbon = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endOfMonthCarbon = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        $startOfMonth = $startOfMonthCarbon->toDateString();
+        $endOfMonth = $endOfMonthCarbon->toDateString();
+        $daysInMonth = $startOfMonthCarbon->daysInMonth;
 
         // Load attendances for the given month (and active outlet if specified)
         $attendancesQuery = $admin->attendances()->whereBetween('date', [$startOfMonth, $endOfMonth]);
@@ -54,13 +57,44 @@ class ReportController extends Controller
         }
         $attendances = $attendancesQuery->get()->groupBy('employee_id');
 
-        $reportData = $employees->map(function ($employee) use ($attendances) {
+        $reportData = $employees->map(function ($employee) use ($attendances, $year, $month, $daysInMonth) {
             $records = $attendances->get($employee->id, collect());
 
             $presentDays = $records->count();
             $lateRecords = $records->where('late_minutes', '>', 0);
             $earlyRecords = $records->where('early_leave_minutes', '>', 0);
             $overtimeRecords = $records->where('overtime_minutes', '>', 0);
+
+            // Calculate actual worked minutes from check_in/check_out timestamps
+            $actualWorkedMinutes = 0;
+            foreach ($records as $record) {
+                if ($record->check_in_at && $record->check_out_at) {
+                    $checkIn = Carbon::parse($record->check_in_at);
+                    $checkOut = Carbon::parse($record->check_out_at);
+                    $actualWorkedMinutes += max(0, $checkIn->diffInMinutes($checkOut));
+                }
+            }
+
+            // Employee's weekly working days (e.g. ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'])
+            $employeeWorkingDays = $employee->working_days;
+            if (empty($employeeWorkingDays) || ! is_array($employeeWorkingDays)) {
+                $employeeWorkingDays = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'];
+            }
+            $employeeWorkingDays = array_map('strtolower', $employeeWorkingDays);
+
+            // Count scheduled work days in this month excluding employee's weekends
+            $scheduledWorkDays = 0;
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $dateObj = Carbon::createFromDate($year, $month, $d);
+                $dayShort = strtolower($dateObj->format('D'));
+                if (in_array($dayShort, $employeeWorkingDays, true)) {
+                    $scheduledWorkDays++;
+                }
+            }
+
+            $workingHoursPerDay = (float) ($employee->working_hours ?? 8);
+            // Scheduled total working minutes for the month (excluding weekends)
+            $scheduledWorkedMinutes = (int) round($scheduledWorkDays * $workingHoursPerDay * 60);
 
             return [
                 'id' => $employee->id,
@@ -74,12 +108,17 @@ class ReportController extends Controller
                     'uid' => $employee->outlet->uid,
                 ] : null,
                 'present_days' => $presentDays,
+                'scheduled_work_days' => $scheduledWorkDays,
                 'late_count' => $lateRecords->count(),
                 'late_total_minutes' => (int) $lateRecords->sum('late_minutes'),
                 'early_leave_count' => $earlyRecords->count(),
                 'early_leave_total_minutes' => (int) $earlyRecords->sum('early_leave_minutes'),
                 'overtime_count' => $overtimeRecords->count(),
                 'overtime_total_minutes' => (int) $overtimeRecords->sum('overtime_minutes'),
+                'actual_worked_minutes' => $actualWorkedMinutes,
+                'scheduled_worked_minutes' => $scheduledWorkedMinutes,
+                'working_hours_per_day' => $workingHoursPerDay,
+                'working_days' => $employeeWorkingDays,
             ];
         });
 
@@ -105,7 +144,9 @@ class ReportController extends Controller
         $admin = Auth::guard('admin')->user();
         $employeeId = $request->query('employee_id') ? (int) $request->query('employee_id') : null;
         $outletId = $request->query('outlet_id') && $request->query('outlet_id') !== 'all' ? (int) $request->query('outlet_id') : null;
+        $month = $request->query('month') ? (int) $request->query('month') : null;
+        $year = $request->query('year') ? (int) $request->query('year') : null;
 
-        return $exportService->exportToExcel($employeeId, $outletId, $admin->id);
+        return $exportService->exportToExcel($employeeId, $outletId, $admin->id, $month, $year);
     }
 }

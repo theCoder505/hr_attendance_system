@@ -28,6 +28,17 @@ export function formatMinutes(minutes: number | string | null | undefined): stri
 }
 
 /**
+ * Format minutes into H.MM hours string (e.g. 450 -> "7.30", 480 -> "8.00", 90 -> "1.30").
+ * Shows hours and minutes separated by a dot, where minutes are zero-padded to 2 digits.
+ */
+export function formatMinutesToHoursDot(totalMinutes: number | string | null | undefined): string {
+    const mins = Math.max(0, Math.round(Number(totalMinutes) || 0));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h}.${String(m).padStart(2, '0')}`;
+}
+
+/**
  * Format a day number into ordinal string (e.g. 1 -> "1st", 2 -> "2nd", 3 -> "3rd", 7 -> "7th").
  */
 export function getOrdinalDay(day: number | string): string {

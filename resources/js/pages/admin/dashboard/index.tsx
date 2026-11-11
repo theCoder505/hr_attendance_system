@@ -1,7 +1,7 @@
 import AdminLayout from '@/layouts/admin-layout';
 import StoragePieChart, { StorageDetails } from '@/components/storage-pie-chart';
 import { showConfirm, showError } from '@/lib/swal';
-import { formatMinutes, getTodayDateString } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot, getTodayDateString } from '@/lib/utils';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -642,6 +642,9 @@ export default function AdminDashboard({
                                             <div className="min-w-25 text-center">Check Out</div>
                                         </th>
                                         <th className="py-3">
+                                            <div className="min-w-25 text-center">Work Hours</div>
+                                        </th>
+                                        <th className="py-3">
                                             <div className="min-w-25 text-center">Status</div>
                                         </th>
                                         <th className="py-3">
@@ -697,6 +700,45 @@ export default function AdminDashboard({
                                                         <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-sans text-[10px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
                                                             In Progress
                                                         </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3">
+                                                <div className="min-w-25 text-center">
+                                                    {item.check_in_at && item.check_out_at ? (
+                                                        (() => {
+                                                            const checkInMs = new Date(item.check_in_at).getTime();
+                                                            const checkOutMs = new Date(item.check_out_at).getTime();
+                                                            const workedMins = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+                                                            const targetHours = Number(item.employee?.working_hours || 8);
+                                                            const isTargetMet = workedMins >= targetHours * 60;
+                                                            return (
+                                                                <div>
+                                                                    <span className={`font-mono font-bold text-xs ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                        {formatMinutesToHoursDot(workedMins)}
+                                                                    </span>
+                                                                    <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                </div>
+                                                            );
+                                                        })()
+                                                    ) : item.check_in_at ? (
+                                                        (() => {
+                                                            const checkInMs = new Date(item.check_in_at).getTime();
+                                                            const nowMs = Date.now();
+                                                            const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                            const targetHours = Number(item.employee?.working_hours || 8);
+                                                            return (
+                                                                <div title="Currently in progress">
+                                                                    <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                                                        {formatMinutesToHoursDot(currentMins)}
+                                                                    </span>
+                                                                    <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                </div>
+                                                            );
+                                                        })()
+                                                    ) : (
+                                                        <span className="text-slate-400">—</span>
                                                     )}
                                                 </div>
                                             </td>
