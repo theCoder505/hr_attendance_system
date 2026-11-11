@@ -10,13 +10,12 @@ import {
     CheckCircle2,
     RefreshCw,
     ShieldCheck,
-    ArrowLeft,
     Sparkles,
     MessageSquare,
     AlertCircle,
 } from 'lucide-react';
 import { showToast, showError, showSuccess } from '@/lib/swal';
-import ThemeToggle from '@/components/theme-toggle';
+import SurfaceLayout from '@/components/surface-layout';
 
 interface Props {
     brandname: string;
@@ -244,25 +243,11 @@ export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col antialiased transition-colors selection:bg-indigo-500 selection:text-white">
+        <SurfaceLayout brandname={brandname} logo={logo}>
             <Head title={`Contact & Inquiries - ${brandname}`} />
 
             {/* Glowing accents */}
             <div className="pointer-events-none absolute top-0 left-1/2 h-96 w-3/4 -translate-x-1/2 rounded-full bg-indigo-600/5 blur-3xl dark:bg-indigo-600/10" />
-
-            {/* Header */}
-            <header className="relative z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-4 backdrop-blur-md sm:px-8 dark:border-slate-800/80 dark:bg-slate-900/80">
-                <div className="flex items-center gap-3">
-                    <Link href="/attendance" className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-xs font-semibold transition-colors">
-                        <ArrowLeft className="h-4 w-4" />
-                        <span>Back to Portal</span>
-                    </Link>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <ThemeToggle variant="dropdown" />
-                </div>
-            </header>
 
             {/* Main Content */}
             <main className="relative z-10 mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:py-14">
@@ -579,24 +564,7 @@ export default function ContactPage({ brandname, logo, verifiedEmail }: Props) {
                     </div>
                 )}
             </main>
-
-            {/* Footer */}
-            <footer className="relative z-10 border-t border-slate-200 px-4 py-6 text-center text-xs text-slate-500 dark:border-slate-800/80">
-                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        &copy; {new Date().getFullYear()} {brandname}. Platform Onboarding Portal.
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <Link href="/attendance" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                            Attendance Portal
-                        </Link>
-                        <Link href="/user-manual" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                            User Manual
-                        </Link>
-                    </div>
-                </div>
-            </footer>
-        </div>
+        </SurfaceLayout>
     );
 }
 

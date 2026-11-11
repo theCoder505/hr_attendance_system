@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import SuperAdminLayout from '@/layouts/super-admin-layout';
 import {
+    Settings,
     ShieldCheck,
     Mail,
     Lock,
@@ -18,8 +19,11 @@ import {
     Calendar,
     Smartphone,
     AlertCircle,
+    Palette,
+    Upload,
 } from 'lucide-react';
 import { showSuccess, showError, showToast } from '@/lib/swal';
+import ImageUploadPreview from '@/components/image-upload-preview';
 
 interface Props {
     superAdmin: {
@@ -28,6 +32,11 @@ interface Props {
         email: string;
         session_time: number;
         created_at: string;
+    };
+    branding?: {
+        brandname: string;
+        logo: string | null;
+        favicon: string | null;
     };
     billingSettings: {
         bkash_number: string | null;
@@ -47,20 +56,37 @@ interface Props {
     };
 }
 
-export default function SuperAdminProfile({ superAdmin, billingSettings }: Props) {
+export default function SuperAdminProfile({ superAdmin, branding, billingSettings }: Props) {
     const [otpRequested, setOtpRequested] = useState(false);
     const [otpLoading, setOtpLoading] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Profile form (Name & Session Timeout)
+    // Form 1: Platform Branding & Identity form (Exclusive to Super Admin)
+    const brandingForm = useForm({
+        brandname: branding?.brandname || 'AttendEase Pro',
+        logo: null as File | null,
+        favicon: null as File | null,
+    });
+
+    const handleBrandingSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        brandingForm.post('/super-admin/settings/branding', {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => showToast('Platform branding & identity updated successfully!', 'success'),
+            onError: (err: any) => showError('Validation Error', Object.values(err)[0] as string),
+        });
+    };
+
+    // Form 2: Profile form (Name & Session Timeout)
     const profileForm = useForm({
         name: superAdmin.name,
         session_time: superAdmin.session_time || 30,
     });
 
-    // Payment Receiving Accounts & Due Date form
+    // Form 3: Payment Receiving Accounts & Due Date form
     const billingForm = useForm({
         bkash_number: billingSettings?.bkash_number || '',
         bkash_type: billingSettings?.bkash_type || 'Personal',
@@ -80,7 +106,7 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
     const handleBillingSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        billingForm.post('/super-admin/profile/billing', {
+        billingForm.post('/super-admin/settings/billing', {
             onSuccess: () => showToast('Payment receiving details & due date updated!', 'success'),
             onError: (err: any) => showError('Validation Error', Object.values(err)[0] as string),
         });
@@ -97,26 +123,26 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
     const handleProfileSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        profileForm.post('/super-admin/profile', {
-            onSuccess: () => showToast('Profile details updated!', 'success'),
-            onError: (err: any) => showError('Validation Error', Object.values(err)[0] as string),
+        profileForm.post('/super-admin/settings', {
+            onSuccess: () => showToast('Profile details saved successfully!', 'success'),
+            onError: (err: any) => showError('Update Failed', Object.values(err)[0] as string),
         });
     };
 
     const handleRequestOtp = () => {
         setOtpLoading(true);
         router.post(
-            '/super-admin/profile/credentials/otp',
+            '/super-admin/settings/credentials/otp',
             {},
             {
                 onSuccess: () => {
                     setOtpRequested(true);
                     setOtpLoading(false);
-                    showSuccess('OTP Dispatched', `A 6-digit security code has been sent to ${superAdmin.email}. Enter it below to authorize credential updates.`);
+                    showToast('OTP Code sent to ' + superAdmin.email, 'success');
                 },
-                onError: () => {
+                onError: (err: any) => {
                     setOtpLoading(false);
-                    showError('Error', 'Failed to dispatch verification OTP.');
+                    showError('Failed to Request OTP', Object.values(err)[0] as string);
                 },
             }
         );
@@ -124,17 +150,16 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
     const handleCredentialsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!credsForm.data.otp || credsForm.data.otp.length !== 6) {
-            showError('OTP Required', 'Please enter the 6-digit OTP code sent to your email.');
+            showError('Invalid OTP', 'Please provide the 6-digit verification code.');
             return;
         }
 
-        credsForm.post('/super-admin/profile/credentials', {
+        credsForm.post('/super-admin/settings/credentials', {
             onSuccess: () => {
+                showSuccess('Success', 'Security credentials updated successfully!');
+                credsForm.reset('current_password', 'password', 'password_confirmation', 'otp');
                 setOtpRequested(false);
-                credsForm.reset('otp', 'current_password', 'password', 'password_confirmation');
-                showSuccess('Credentials Updated', 'Super Admin email and/or password updated successfully.');
             },
             onError: (err: any) => {
                 showError('Update Failed', Object.values(err)[0] as string);
@@ -143,29 +168,100 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
     };
 
     return (
-        <SuperAdminLayout title="Super Admin Profile & Security">
-            <Head title="Profile & Security - Super Admin" />
+        <SuperAdminLayout title="Settings">
+            <Head title="Settings - Super Admin" />
 
             <div>
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                    <ShieldCheck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    Super Admin Security & Profile
+                    <Settings className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    Settings
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Manage root identity, session timeout policies, and authorize email/password changes via OTP verification.
+                    Manage global platform branding & identity, root administrator profile, payment receiving gateways, and security credentials.
                 </p>
             </div>
 
+            {/* 1. Global Platform Branding & Identity (Super Admin Only) */}
+            <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div className="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                        <Palette className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Branding & Identity</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Configure system-wide brand name, application logo, and browser favicon across all surface & store pages.
+                        </p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleBrandingSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            System Brand Name *
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            value={brandingForm.data.brandname}
+                            onChange={(e) => brandingForm.setData('brandname', e.target.value)}
+                            placeholder="e.g. AttendEase Pro"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                        {brandingForm.errors.brandname && (
+                            <p className="text-rose-500 text-xs mt-1">{brandingForm.errors.brandname}</p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ImageUploadPreview
+                            id="super-admin-brand-logo"
+                            label="Brand Logo"
+                            currentImageUrl={branding?.logo ? `/storage/${branding.logo}` : null}
+                            selectedFile={brandingForm.data.logo}
+                            onFileChange={(file) => brandingForm.setData('logo', file)}
+                            accept="image/*,.jpeg,.jpg,.png,.webp,.svg"
+                            aspectRatio="auto"
+                            helperText="PNG, JPG, SVG or WEBP (Max 2MB). Used in headers and public portals."
+                            error={brandingForm.errors.logo}
+                        />
+
+                        <ImageUploadPreview
+                            id="super-admin-brand-favicon"
+                            label="Browser Favicon"
+                            currentImageUrl={branding?.favicon ? `/storage/${branding.favicon}` : null}
+                            selectedFile={brandingForm.data.favicon}
+                            onFileChange={(file) => brandingForm.setData('favicon', file)}
+                            accept="image/*,.ico,.png,.svg"
+                            aspectRatio="square"
+                            helperText="ICO, PNG or SVG (Max 1MB). Displayed on browser tabs."
+                            error={brandingForm.errors.favicon}
+                        />
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={brandingForm.processing}
+                            className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                        >
+                            <Upload className="h-4 w-4" />
+                            <span>{brandingForm.processing ? 'Saving Branding...' : 'Save Branding & Identity'}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 1. General Profile Info */}
+                {/* 2. General Profile Info */}
                 <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
                     <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200 dark:border-slate-800">
                         <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
                             <User className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="text-base font-bold text-slate-900 dark:text-white">Admin Details</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Basic administrative preferences</p>
+                            <h2 className="text-base font-bold text-slate-900 dark:text-white">Admin Identity Profile</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Display name & session security</p>
                         </div>
                     </div>
 
@@ -213,7 +309,7 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                     </form>
                 </div>
 
-                {/* 2. Sensitive Credentials Change via OTP */}
+                {/* 3. Sensitive Credentials Change via OTP */}
                 <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
                     <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200 dark:border-slate-800">
                         <div className="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
@@ -249,68 +345,62 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                             {/* OTP Code Input */}
                             <div className="p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 space-y-1.5">
                                 <label className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                                    <KeyRound className="h-3.5 w-3.5 text-purple-600" />
-                                    Enter 6-Digit Email OTP Code <span className="text-rose-500">*</span>
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                    <span>Enter 6-Digit OTP Code sent to {superAdmin.email} *</span>
                                 </label>
                                 <input
                                     type="text"
                                     maxLength={6}
                                     required
+                                    placeholder="e.g. 123456"
                                     value={credsForm.data.otp}
                                     onChange={(e) => credsForm.setData('otp', e.target.value.replace(/\D/g, ''))}
-                                    placeholder="e.g. 123456"
-                                    className="w-full px-3.5 py-2 font-mono text-center tracking-widest font-bold text-sm rounded-xl border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                    className="w-full text-center font-mono tracking-widest text-lg font-bold py-2.5 rounded-xl border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 text-purple-900 dark:text-purple-100 focus:ring-2 focus:ring-purple-500"
                                 />
                                 {credsForm.errors.otp && (
-                                    <p className="text-xs text-rose-500">{credsForm.errors.otp}</p>
+                                    <p className="text-[11px] text-rose-600 font-semibold">{credsForm.errors.otp}</p>
                                 )}
                             </div>
 
-                            {/* New Email */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                    New Super Admin Email (Optional)
+                                    New Email Address (Optional)
                                 </label>
                                 <input
                                     type="email"
                                     value={credsForm.data.email}
                                     onChange={(e) => credsForm.setData('email', e.target.value)}
-                                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                    placeholder={superAdmin.email}
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 />
-                                {credsForm.errors.email && (
-                                    <p className="text-xs text-rose-500">{credsForm.errors.email}</p>
-                                )}
                             </div>
 
-                            {/* Current Password */}
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                    Current Password (Required if changing password)
+                                    Current Password (Required for password change)
                                 </label>
                                 <div className="relative">
                                     <input
-                                        type={showCurrentPassword ? 'text' : 'password'}
+                                        type={showCurrentPassword ? "text" : "password"}
                                         value={credsForm.data.current_password}
                                         onChange={(e) => credsForm.setData('current_password', e.target.value)}
-                                        placeholder="Enter current password"
-                                        className="w-full pl-3.5 pr-10 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                        placeholder="Enter your current password"
+                                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                         tabIndex={-1}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                        title={showCurrentPassword ? 'Hide password' : 'Show password'}
                                     >
                                         {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
                                 {credsForm.errors.current_password && (
-                                    <p className="text-xs text-rose-500">{credsForm.errors.current_password}</p>
+                                    <p className="text-[11px] text-rose-600 font-semibold">{credsForm.errors.current_password}</p>
                                 )}
                             </div>
 
-                            {/* New Password & Confirmation */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -318,45 +408,43 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                                     </label>
                                     <div className="relative">
                                         <input
-                                            type={showNewPassword ? 'text' : 'password'}
+                                            type={showNewPassword ? "text" : "password"}
                                             value={credsForm.data.password}
                                             onChange={(e) => credsForm.setData('password', e.target.value)}
-                                            placeholder="Min 8 characters"
-                                            className="w-full pl-3.5 pr-10 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Min. 8 characters"
+                                            className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowNewPassword(!showNewPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                             tabIndex={-1}
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                            title={showNewPassword ? 'Hide password' : 'Show password'}
                                         >
                                             {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
                                     {credsForm.errors.password && (
-                                        <p className="text-xs text-rose-500">{credsForm.errors.password}</p>
+                                        <p className="text-[11px] text-rose-600 font-semibold">{credsForm.errors.password}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                        Confirm Password
+                                        Confirm New Password
                                     </label>
                                     <div className="relative">
                                         <input
-                                            type={showConfirmPassword ? 'text' : 'password'}
+                                            type={showConfirmPassword ? "text" : "password"}
                                             value={credsForm.data.password_confirmation}
                                             onChange={(e) => credsForm.setData('password_confirmation', e.target.value)}
-                                            placeholder="Re-type new password"
-                                            className="w-full pl-3.5 pr-10 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                                            placeholder="Repeat new password"
+                                            className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                             tabIndex={-1}
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                                            title={showConfirmPassword ? 'Hide password' : 'Show password'}
                                         >
                                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
@@ -364,21 +452,20 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                                 </div>
                             </div>
 
-                            <div className="pt-2 flex items-center justify-between gap-3">
+                            <div className="pt-2 flex items-center justify-between">
                                 <button
                                     type="button"
                                     onClick={() => setOtpRequested(false)}
-                                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                    className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-semibold cursor-pointer"
                                 >
                                     Cancel
                                 </button>
-
                                 <button
                                     type="submit"
-                                    disabled={credsForm.processing || credsForm.data.otp.length !== 6}
-                                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                                    disabled={credsForm.processing}
+                                    className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all disabled:opacity-50 cursor-pointer"
                                 >
-                                    {credsForm.processing ? 'Verifying...' : 'Verify OTP & Apply Changes'}
+                                    {credsForm.processing ? 'Verifying...' : 'Authorize & Update Credentials'}
                                 </button>
                             </div>
                         </form>
@@ -386,36 +473,27 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                 </div>
             </div>
 
-            {/* 3. Platform Payment Receiving Accounts & Subscription Policies */}
+            {/* 4. Payment Receiving Accounts & Due Date */}
             <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                        <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-                            <CreditCard className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                Payment Receiving Accounts & Billing Deadline
-                            </h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Configure bKash, Nagad, and Bank payment instructions displayed to store owners, and set the monthly payment deadline.
-                            </p>
-                        </div>
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                        <CreditCard className="h-5 w-5" />
                     </div>
-
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-xs font-semibold text-purple-700 dark:text-purple-300">
-                        <Calendar className="h-3.5 w-3.5" />
-                        <span>Deadline: Every {billingForm.data.payment_due_day}th of month</span>
+                    <div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Platform Payment Accounts & Monthly Due Date</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Configure receiving accounts (bKash, Nagad, Bank) that store owners see when paying their monthly subscription invoices.
+                        </p>
                     </div>
                 </div>
 
                 <form onSubmit={handleBillingSubmit} className="space-y-6">
-                    {/* Deadline & Default Fee */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                    {/* Due Date & Default Monthly Fee */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-800/60">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                <Calendar className="h-3.5 w-3.5 text-purple-600" />
-                                Monthly Payment Deadline Day (1 to 31) <span className="text-rose-500">*</span>
+                            <label className="text-xs font-bold text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>Monthly Payment Due Deadline Day (1 - 31) *</span>
                             </label>
                             <input
                                 type="number"
@@ -424,58 +502,50 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                                 required
                                 value={billingForm.data.payment_due_day}
                                 onChange={(e) => billingForm.setData('payment_due_day', parseInt(e.target.value) || 7)}
-                                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3.5 py-2 text-xs font-bold rounded-xl border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                             />
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-purple-700/80 dark:text-purple-400">
                                 Store owners must complete payment on or before this day of every month (Default: 7th). If not verified by this date, attendance service is suspended.
                             </p>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                <CreditCard className="h-3.5 w-3.5 text-purple-600" />
-                                Default Monthly Fee per Store (BDT) <span className="text-rose-500">*</span>
+                            <label className="text-xs font-bold text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
+                                <CreditCard className="h-3.5 w-3.5" />
+                                <span>Default Base Monthly Fee (BDT) *</span>
                             </label>
                             <input
                                 type="number"
                                 min={0}
-                                step="10"
+                                step="0.01"
                                 required
                                 value={billingForm.data.default_monthly_fee}
                                 onChange={(e) => billingForm.setData('default_monthly_fee', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3.5 py-2 text-xs font-bold rounded-xl border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                             />
-                            <p className="text-[11px] text-slate-400">
-                                Default subscription amount billed monthly to new paid stores (e.g. 500 BDT).
+                            <p className="text-[11px] text-purple-700/80 dark:text-purple-400">
+                                Fallback fee billed automatically on the 1st of each month if a custom store fee is not specified.
                             </p>
                         </div>
                     </div>
 
-                    {/* MFS: bKash & Nagad */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* bKash & Nagad Accounts */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* bKash */}
-                        <div className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                            billingForm.data.bkash_enabled
-                                ? 'border-pink-200 dark:border-pink-900/50 bg-pink-50/40 dark:bg-pink-950/20'
-                                : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 opacity-70'
-                        }`}>
-                            <div className="flex items-center justify-between gap-2">
+                        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-lg bg-pink-600 text-white font-black text-xs flex items-center justify-center">
-                                        bK
-                                    </div>
-                                    <h3 className="text-xs font-bold text-pink-900 dark:text-pink-300 uppercase tracking-wider">
-                                        bKash Receiving Account
-                                    </h3>
+                                    <span className="h-2.5 w-2.5 rounded-full bg-pink-500" />
+                                    <span className="font-bold text-xs text-slate-900 dark:text-white">bKash Receiving Account</span>
                                 </div>
-                                <label className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={billingForm.data.bkash_enabled}
                                         onChange={(e) => billingForm.setData('bkash_enabled', e.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-300 text-pink-600 focus:ring-pink-500 cursor-pointer"
+                                        className="h-3.5 w-3.5 text-pink-600 rounded border-slate-300 focus:ring-pink-500"
                                     />
-                                    <span className={billingForm.data.bkash_enabled ? 'text-pink-700 dark:text-pink-300' : 'text-slate-400'}>
+                                    <span className={`text-[11px] font-semibold ${billingForm.data.bkash_enabled ? 'text-pink-600 dark:text-pink-400' : 'text-slate-400'}`}>
                                         {billingForm.data.bkash_enabled ? 'Enabled' : 'Disabled'}
                                     </span>
                                 </label>
@@ -483,14 +553,14 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                    bKash Account Number
+                                    bKash Number
                                 </label>
                                 <input
                                     type="text"
                                     value={billingForm.data.bkash_number}
                                     onChange={(e) => billingForm.setData('bkash_number', e.target.value)}
-                                    placeholder="e.g. 01700000000"
-                                    className="w-full px-3.5 py-2 font-mono text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-pink-500"
+                                    placeholder="e.g. 01711223344"
+                                    className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 />
                             </div>
 
@@ -501,38 +571,30 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                                 <select
                                     value={billingForm.data.bkash_type}
                                     onChange={(e) => billingForm.setData('bkash_type', e.target.value)}
-                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-pink-500"
+                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 >
-                                    <option value="Personal">Personal (Send Money)</option>
-                                    <option value="Merchant">Merchant (Payment)</option>
-                                    <option value="Agent">Agent (Cash Out)</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Merchant">Merchant</option>
+                                    <option value="Agent">Agent</option>
                                 </select>
                             </div>
                         </div>
 
                         {/* Nagad */}
-                        <div className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                            billingForm.data.nagad_enabled
-                                ? 'border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20'
-                                : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 opacity-70'
-                        }`}>
-                            <div className="flex items-center justify-between gap-2">
+                        <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-lg bg-amber-600 text-white font-black text-xs flex items-center justify-center">
-                                        NG
-                                    </div>
-                                    <h3 className="text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
-                                        Nagad Receiving Account
-                                    </h3>
+                                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                                    <span className="font-bold text-xs text-slate-900 dark:text-white">Nagad Receiving Account</span>
                                 </div>
-                                <label className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={billingForm.data.nagad_enabled}
                                         onChange={(e) => billingForm.setData('nagad_enabled', e.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                        className="h-3.5 w-3.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
                                     />
-                                    <span className={billingForm.data.nagad_enabled ? 'text-amber-700 dark:text-amber-300' : 'text-slate-400'}>
+                                    <span className={`text-[11px] font-semibold ${billingForm.data.nagad_enabled ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
                                         {billingForm.data.nagad_enabled ? 'Enabled' : 'Disabled'}
                                     </span>
                                 </label>
@@ -540,14 +602,14 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                    Nagad Account Number
+                                    Nagad Number
                                 </label>
                                 <input
                                     type="text"
                                     value={billingForm.data.nagad_number}
                                     onChange={(e) => billingForm.setData('nagad_number', e.target.value)}
-                                    placeholder="e.g. 01800000000"
-                                    className="w-full px-3.5 py-2 font-mono text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                                    placeholder="e.g. 01811223344"
+                                    className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 />
                             </div>
 
@@ -558,37 +620,31 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
                                 <select
                                     value={billingForm.data.nagad_type}
                                     onChange={(e) => billingForm.setData('nagad_type', e.target.value)}
-                                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 >
-                                    <option value="Personal">Personal (Send Money)</option>
-                                    <option value="Merchant">Merchant (Payment)</option>
-                                    <option value="Agent">Agent (Cash Out)</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Merchant">Merchant</option>
+                                    <option value="Agent">Agent</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     {/* Bank Details */}
-                    <div className={`p-4 rounded-2xl border transition-all space-y-4 ${
-                        billingForm.data.bank_enabled
-                            ? 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 opacity-70'
-                    }`}>
-                        <div className="flex items-center justify-between gap-2">
+                    <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 space-y-3">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-purple-600" />
-                                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                                    Commercial Bank Account Details
-                                </h3>
+                                <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                <span className="font-bold text-xs text-slate-900 dark:text-white">Bank Account Details</span>
                             </div>
-                            <label className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={billingForm.data.bank_enabled}
                                     onChange={(e) => billingForm.setData('bank_enabled', e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    className="h-3.5 w-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                                 />
-                                <span className={billingForm.data.bank_enabled ? 'text-purple-700 dark:text-purple-300' : 'text-slate-400'}>
+                                <span className={`text-[11px] font-semibold ${billingForm.data.bank_enabled ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
                                     {billingForm.data.bank_enabled ? 'Enabled' : 'Disabled'}
                                 </span>
                             </label>
@@ -610,13 +666,13 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
 
                             <div className="space-y-1">
                                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                    Account Name / Title
+                                    Account Holder Name
                                 </label>
                                 <input
                                     type="text"
                                     value={billingForm.data.bank_account_name}
                                     onChange={(e) => billingForm.setData('bank_account_name', e.target.value)}
-                                    placeholder="e.g. AttendEase Tech Ltd."
+                                    placeholder="e.g. AttendEase Ltd"
                                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500"
                                 />
                             </div>
@@ -676,4 +732,3 @@ export default function SuperAdminProfile({ superAdmin, billingSettings }: Props
         </SuperAdminLayout>
     );
 }
-

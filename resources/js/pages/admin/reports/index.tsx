@@ -85,7 +85,7 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
             <Head title="Monthly Reports - Attendance Management" />
 
             {/* Outlet Tabs Navigation */}
-            <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="mb-6 flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
                 <button
                     onClick={() => handleFilterChange(month, year, search, 'all')}
                     className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-semibold transition-all ${activeOutletId === 'all' || !activeOutletId

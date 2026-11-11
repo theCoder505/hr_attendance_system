@@ -1,9 +1,9 @@
-import ThemeToggle from '@/components/theme-toggle';
 import { showConfirm, showError, showSuccess } from '@/lib/swal';
 import { formatMinutes } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
-import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Wifi, Store } from 'lucide-react';
+import { CheckCircle2, Clock, LogIn, LogOut, RefreshCw, ShieldAlert, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import SurfaceLayout from '@/components/surface-layout';
 
 interface Props {
     brandname: string;
@@ -11,10 +11,14 @@ interface Props {
     officeStartingTime: string;
     officeClosingTime: string;
     clientIp: string;
+    timezone?: string;
+    serverTime?: string;
 }
 
-export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: Props) {
-    const [currentTime, setCurrentTime] = useState(new Date());
+export default function EmployeeAttendancePortal({ brandname, logo, clientIp, timezone = 'Asia/Dhaka', serverTime }: Props) {
+    const [currentTime, setCurrentTime] = useState<Date>(() => {
+        return serverTime ? new Date(serverTime) : new Date();
+    });
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
@@ -30,9 +34,11 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
     const [monthlyStats, setMonthlyStats] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
 
-    // Live clock ticker
+    // Live clock ticker advances every second
     useEffect(() => {
-        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        const interval = setInterval(() => {
+            setCurrentTime((prev) => new Date(prev.getTime() + 1000));
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -96,6 +102,9 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
             }
 
             if (data.success) {
+                if (data.currentTime) {
+                    setCurrentTime(new Date(data.currentTime));
+                }
                 setEmployee(data.employee);
                 if (data.employee?.outlet?.uid && !localStorage.getItem('outlet_uid')) {
                     localStorage.setItem('outlet_uid', data.employee.outlet.uid);
@@ -277,36 +286,18 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
         if (!timeStr) return '—';
         try {
             const d = new Date(timeStr);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: timezone });
         } catch {
             return timeStr;
         }
     };
 
     return (
-        <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800 antialiased transition-colors selection:bg-indigo-500 selection:text-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 dark:text-slate-100">
+        <SurfaceLayout brandname={brandname} logo={logo} clientIp={clientIp}>
             <Head title={`Employee Attendance - ${brandname}`} />
 
             {/* Glowing accents */}
             <div className="pointer-events-none absolute top-0 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-indigo-600/5 blur-3xl dark:bg-indigo-600/10" />
-
-            {/* Top Navigation Bar */}
-            <header className="relative z-10 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3.5 backdrop-blur-md sm:px-8 dark:border-slate-800/80 dark:bg-slate-950/60">
-                <div className="flex items-center gap-3">
-                    <div className="w-40">
-                        {logo ? <img src={`/storage/${logo}`} alt="Logo" className="h-auto w-full object-contain" /> : <Clock className="h-5 w-5" />}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                    <ThemeToggle variant="dropdown" />
-
-                    <div className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs text-slate-600 sm:flex dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-                        <Wifi className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
-                        <span>IP: {clientIp}</span>
-                    </div>
-                </div>
-            </header>
 
             {/* Main Content Area */}
             <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col justify-start px-4 py-8 sm:py-10">
@@ -431,10 +422,10 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                             {/* Live Clock Display */}
                             <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center shadow-inner md:w-auto md:text-right dark:border-slate-800/80 dark:bg-slate-950/60">
                                 <div className="font-mono text-3xl font-extrabold tracking-wider text-slate-900 sm:text-4xl dark:text-white">
-                                    {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                                    {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: timezone })}
                                 </div>
                                 <div className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                    {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                    {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: timezone })}
                                 </div>
                             </div>
                         </div>
@@ -710,26 +701,6 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp }: 
                     </div>
                 )}
             </main>
-
-            {/* Footer */}
-            <footer className="relative z-10 border-t border-slate-200 px-4 py-6 text-center text-xs text-slate-500 dark:border-slate-800/80">
-                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        &copy; {new Date().getFullYear()} {brandname}. All rights reserved.
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <a href="/attendance" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                            Attendance Portal
-                        </a>
-                        <a href="/user-manual" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                            User Manual
-                        </a>
-                        <a href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                            Contact & Inquiries
-                        </a>
-                    </div>
-                </div>
-            </footer>
-        </div>
+        </SurfaceLayout>
     );
 }

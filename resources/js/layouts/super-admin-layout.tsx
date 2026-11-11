@@ -12,6 +12,7 @@ import {
     X,
     CreditCard,
     BookOpen,
+    Settings,
 } from 'lucide-react';
 import { showSuccess, showError, showWarning, showToast } from '@/lib/swal';
 import ThemeToggle from '@/components/theme-toggle';
@@ -78,10 +79,10 @@ export default function SuperAdminLayout({ title, children }: Props) {
             active: currentRoute.includes('/super-admin/user-manual'),
         },
         {
-            label: 'Super Admin Profile',
-            href: '/super-admin/profile',
-            icon: ShieldCheck,
-            active: currentRoute.includes('/super-admin/profile'),
+            label: 'Settings',
+            href: '/super-admin/settings',
+            icon: Settings,
+            active: currentRoute.includes('/super-admin/settings'),
         },
     ];
 

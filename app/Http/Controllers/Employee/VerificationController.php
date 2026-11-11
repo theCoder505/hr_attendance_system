@@ -27,6 +27,7 @@ class VerificationController extends Controller
                 'status' => 'invalid',
                 'message' => 'This verification link is invalid or has already been used. Please ask your administrator for a new link.',
                 'brandname' => $settings->brandname ?? 'AttendEase',
+                'logo' => $settings->logo,
             ]);
         }
 
@@ -35,6 +36,7 @@ class VerificationController extends Controller
                 'status' => 'expired',
                 'message' => 'This verification link has expired. Please request a new verification link from your administrator.',
                 'brandname' => $settings->brandname ?? 'AttendEase',
+                'logo' => $settings->logo,
             ]);
         }
 
@@ -74,6 +76,7 @@ class VerificationController extends Controller
             ],
             'expires_at' => Carbon::now()->addMonth()->toFormattedDateString(),
             'brandname' => $settings->brandname ?? 'AttendEase',
+            'logo' => $settings->logo,
         ]);
     }
 }

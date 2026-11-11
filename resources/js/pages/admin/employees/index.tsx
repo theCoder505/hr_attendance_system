@@ -180,7 +180,7 @@ export default function EmployeeIndex({ employees, outlets = [], filters, defaul
 
             {/* Top Toolbar */}
             <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex max-w-xl flex-1 items-center gap-3">
+                <div className="grid lg:flex max-w-xl flex-1 items-center gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1">
                         <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />

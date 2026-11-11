@@ -14,7 +14,6 @@ import {
     Building2,
     Smartphone,
     Send,
-    HelpCircle,
 } from 'lucide-react';
 import { formatHumanDueDate, getOrdinalDay } from '@/lib/utils';
 import Swal from 'sweetalert2';
@@ -56,9 +55,10 @@ interface Props {
     invoices: Invoice[];
     isSuspended: boolean;
     platformSettings: PlatformSettings;
+    timezone?: string;
 }
 
-export default function StoreInvoicesPage({ invoices, isSuspended, platformSettings }: Props) {
+export default function StoreInvoicesPage({ invoices, isSuspended, platformSettings, timezone }: Props) {
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -85,7 +85,19 @@ export default function StoreInvoicesPage({ invoices, isSuspended, platformSetti
             paid_amount: invoice.paid_amount ? String(invoice.paid_amount) : String(invoice.amount),
             payment_method: currentMethod,
             transaction_id: invoice.transaction_id || '',
-            payment_time: invoice.payment_time ? invoice.payment_time.substring(0, 16) : new Date().toISOString().substring(0, 16),
+            payment_time: invoice.payment_time
+                ? invoice.payment_time.substring(0, 16)
+                : new Intl.DateTimeFormat('sv-SE', {
+                      timeZone: timezone,
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hourCycle: 'h23',
+                  })
+                      .format(new Date())
+                      .replace(' ', 'T'),
             payment_note: invoice.payment_note || '',
         });
     };
@@ -370,7 +382,6 @@ export default function StoreInvoicesPage({ invoices, isSuspended, platformSetti
                                     <span className="block font-sans font-semibold text-slate-700 dark:text-slate-300">
                                         Due Date: {formatHumanDueDate(selectedInvoice.due_date, platformSettings.payment_due_day)}
                                     </span>
-                                    <span className="text-[11px] text-slate-400">({selectedInvoice.due_date})</span>
                                 </div>
                             </div>
 

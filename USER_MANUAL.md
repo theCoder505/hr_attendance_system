@@ -105,7 +105,7 @@ Navigate to **"Contact Inquiries"** (`/super-admin/inquiries`):
   * An email is dispatched to the inquirer's verified email address using the branded `ContactReplyMail` template.
 
 ### 1.6 Super Admin Profile & OTP Credentials Update
-Navigate to **"Super Admin Profile"** (`/super-admin/profile`):
+Navigate to **"Super Admin Profile"** (`/super-admin/settings`):
 * Update root name and session inactivity timeout.
 * **Changing Email or Password with OTP**:
   1. Click **"Request Security OTP to Change Credentials"**.

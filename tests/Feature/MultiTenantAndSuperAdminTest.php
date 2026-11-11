@@ -325,7 +325,7 @@ class MultiTenantAndSuperAdminTest extends TestCase
 
         // 1. Request OTP
         $this->actingAs($superAdmin, 'super_admin')
-            ->post('/super-admin/profile/credentials/otp')
+            ->post('/super-admin/settings/credentials/otp')
             ->assertSessionHas('success');
 
         Mail::assertSent(SuperAdminOtpMail::class);
@@ -335,7 +335,7 @@ class MultiTenantAndSuperAdminTest extends TestCase
         $this->assertNotEmpty($otp);
 
         // 2. Submit credentials change with valid OTP
-        $this->actingAs($superAdmin, 'super_admin')->post('/super-admin/profile/credentials', [
+        $this->actingAs($superAdmin, 'super_admin')->post('/super-admin/settings/credentials', [
             'otp' => $otp,
             'email' => 'newsuper@super.com',
             'current_password' => 'SuperAdmin@1234',
@@ -368,7 +368,7 @@ class MultiTenantAndSuperAdminTest extends TestCase
         );
 
         // 1. Super Admin configures billing receiving details and payment due day
-        $this->actingAs($superAdmin, 'super_admin')->post('/super-admin/profile/billing', [
+        $this->actingAs($superAdmin, 'super_admin')->post('/super-admin/settings/billing', [
             'payment_due_day' => 10,
             'default_monthly_fee' => 750.00,
             'bkash_number' => '01711223344',
@@ -466,6 +466,13 @@ class MultiTenantAndSuperAdminTest extends TestCase
         $this->actingAs($freeStore, 'admin')
             ->get('/store/invoices')
             ->assertRedirect('/store/dashboard');
+
+        // Suspended page redirects to index if store is not suspended or store is missing
+        $this->get('/attendance/suspended?store_id=' . $freeStore->store_id)
+            ->assertRedirect(route('attendance.index'));
+
+        $this->get('/attendance/suspended')
+            ->assertRedirect(route('attendance.index'));
     }
 
     /**

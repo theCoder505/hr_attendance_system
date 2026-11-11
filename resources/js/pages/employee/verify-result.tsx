@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { ShieldCheck, AlertOctagon, ArrowRight, Laptop, Clock, CheckCircle2 } from 'lucide-react';
+import { AlertOctagon, ArrowRight, Laptop, Clock, CheckCircle2 } from 'lucide-react';
 import { showToast } from '@/lib/swal';
-import ThemeToggle from '@/components/theme-toggle';
+import SurfaceLayout from '@/components/surface-layout';
 
 interface Props {
     status: 'success' | 'expired' | 'invalid';
@@ -23,6 +23,7 @@ interface Props {
     };
     expires_at?: string;
     brandname: string;
+    logo?: string | null;
 }
 
 export default function VerifyResult({
@@ -36,6 +37,7 @@ export default function VerifyResult({
     employee,
     expires_at,
     brandname,
+    logo = null,
 }: Props) {
     useEffect(() => {
         if (status === 'success' && raw_token) {
@@ -52,70 +54,52 @@ export default function VerifyResult({
     }, [status, raw_token, store_id, outlet_uid, outlet]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-50/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 flex items-center justify-center p-4 relative overflow-hidden transition-colors">
-            <Head title={`Device Verification - ${brandname}`} />
+        <SurfaceLayout brandname={brandname} logo={logo}>
+            <Head title={`Device Authentication - ${brandname}`} />
 
-            {/* Top Right Theme Toggle */}
-            <div className="absolute top-4 right-4 z-20">
-                <ThemeToggle variant="dropdown" />
-            </div>
-
-            {/* Glowing background circles */}
-            <div className="absolute top-1/4 -left-20 w-80 h-80 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="max-w-md w-full relative z-10">
-                <div className="text-center mb-6">
-                    <span className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 px-3 py-1 rounded-full">
-                        {brandname} Secure Device Binding
-                    </span>
-                </div>
-
-                <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl dark:shadow-2xl shadow-slate-200/50 dark:shadow-black/60 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 my-auto">
+                <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl text-center">
                     {status === 'success' ? (
                         <>
-                            <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-5 shadow-lg shadow-emerald-500/10">
-                                <ShieldCheck className="h-10 w-10 animate-bounce" />
+                            <div className="inline-flex items-center justify-center h-20 w-20 rounded-3xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-5 shadow-lg shadow-emerald-500/10">
+                                <CheckCircle2 className="h-10 w-10" />
                             </div>
 
                             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-                                Device Verified Successfully!
+                                Device Verified!
                             </h1>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-6">
-                                Your device has been securely bound to your employee profile and assigned outlet. You can now clock in and out from this browser.
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                                This browser has been cryptographically linked to your company profile. You can now log your attendance seamlessly.
                             </p>
 
-                            {/* Employee Badge Card */}
                             {employee && (
-                                <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 mb-6 text-left space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">Employee</span>
-                                        <span className="text-xs font-semibold text-slate-900 dark:text-white">{employee.name}</span>
+                                <div className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-6 text-left space-y-2 text-xs">
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                                        <span className="text-slate-500">Employee:</span>
+                                        <span className="font-semibold text-slate-900 dark:text-white">{employee.name}</span>
                                     </div>
-                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">Role</span>
-                                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">{employee.role}</span>
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                                        <span className="text-slate-500">ID / Role:</span>
+                                        <span className="font-mono text-slate-700 dark:text-slate-300">{employee.uid} ({employee.role})</span>
                                     </div>
-                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">Employee ID</span>
-                                        <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{employee.uid}</span>
-                                    </div>
-                                    {store_id && (
-                                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">Store</span>
-                                            <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{store_name ? `${store_name} (${store_id})` : store_id}</span>
+                                    {store_name && (
+                                        <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                                            <span className="text-slate-500">Store:</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-200">{store_name}</span>
                                         </div>
                                     )}
                                     {outlet && (
-                                        <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">Assigned Outlet</span>
-                                            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{outlet.name}</span>
+                                        <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                                            <span className="text-slate-500">Outlet:</span>
+                                            <span className="font-medium text-slate-800 dark:text-slate-200">{outlet.name}</span>
                                         </div>
                                     )}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">Binding Session</span>
-                                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Valid until {expires_at}</span>
-                                    </div>
+                                    {expires_at && (
+                                        <div className="flex justify-between items-center py-1">
+                                            <span className="text-slate-500">Token Active Till:</span>
+                                            <span className="font-medium text-emerald-600 dark:text-emerald-400">{expires_at}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -163,11 +147,7 @@ export default function VerifyResult({
                         </>
                     )}
                 </div>
-
-                <div className="mt-6 text-center text-xs text-slate-500">
-                    &copy; {new Date().getFullYear()} {brandname}. Secure Device Authentication System.
-                </div>
             </div>
-        </div>
+        </SurfaceLayout>
     );
 }

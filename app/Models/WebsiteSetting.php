@@ -49,12 +49,12 @@ class WebsiteSetting extends Model
             }
 
             // Create new settings record copied from global defaults
-            $global = static::first();
+            $global = static::current();
             return static::create([
                 'admin_id' => $adminId,
                 'brandname' => $global->brandname ?? 'AttendEase Store',
-                'logo' => null,
-                'favicon' => null,
+                'logo' => $global->logo,
+                'favicon' => $global->favicon,
                 'office_starting_time' => $global->office_starting_time ?? '09:00:00',
                 'office_closing_time' => $global->office_closing_time ?? '17:00:00',
                 'office_ipv4_addr' => $global->office_ipv4_addr ?? '127.0.0.1',
@@ -67,22 +67,24 @@ class WebsiteSetting extends Model
     }
 
     /**
-     * Get or create the singleton website settings row.
+     * Get or create the global platform website settings row (admin_id is null).
      */
     public static function current(): self
     {
-        $setting = static::first();
+        $setting = static::whereNull('admin_id')->first();
 
         if (! $setting) {
+            // Check if there is an existing legacy row with admin_id != null we can duplicate from, or create fresh
+            $legacy = static::first();
             $setting = static::create([
                 'admin_id' => null,
-                'brandname' => 'AttendEase Pro',
-                'logo' => null,
-                'favicon' => null,
-                'office_starting_time' => '09:00:00',
-                'office_closing_time' => '17:00:00',
-                'office_ipv4_addr' => '127.0.0.1',
-                'missing_checkout_early_leave_minutes' => 60,
+                'brandname' => $legacy?->brandname ?? 'AttendEase Pro',
+                'logo' => $legacy?->logo ?? null,
+                'favicon' => $legacy?->favicon ?? null,
+                'office_starting_time' => $legacy?->office_starting_time ?? '09:00:00',
+                'office_closing_time' => $legacy?->office_closing_time ?? '17:00:00',
+                'office_ipv4_addr' => $legacy?->office_ipv4_addr ?? '127.0.0.1',
+                'missing_checkout_early_leave_minutes' => $legacy?->missing_checkout_early_leave_minutes ?? 60,
                 'admin_login_2fa_enabled' => true,
             ]);
         }

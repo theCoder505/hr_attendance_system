@@ -46,12 +46,13 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
         Route::post('/inquiries/{inquiry}/reply', [SuperAdminInquiryController::class, 'reply'])->name('inquiries.reply');
         Route::delete('/inquiries/{inquiry}', [SuperAdminInquiryController::class, 'destroy'])->name('inquiries.destroy');
 
-        // Profile, Billing Accounts & Credential Changes with OTP Verification
-        Route::get('/profile', [SuperAdminProfileController::class, 'index'])->name('profile.index');
-        Route::post('/profile', [SuperAdminProfileController::class, 'updateProfile'])->name('profile.update');
-        Route::post('/profile/billing', [SuperAdminProfileController::class, 'updateBillingSettings'])->name('profile.billing');
-        Route::post('/profile/credentials/otp', [SuperAdminProfileController::class, 'requestCredentialsOtp'])->name('profile.credentials.otp');
-        Route::post('/profile/credentials', [SuperAdminProfileController::class, 'updateCredentials'])->name('profile.credentials');
+        // Settings (Branding & Identity, Profile, Billing Accounts & Credential Changes with OTP Verification)
+        Route::get('/settings', [SuperAdminProfileController::class, 'index'])->name('profile.index');
+        Route::post('/settings', [SuperAdminProfileController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/settings/branding', [SuperAdminProfileController::class, 'updateBranding'])->name('profile.branding');
+        Route::post('/settings/billing', [SuperAdminProfileController::class, 'updateBillingSettings'])->name('profile.billing');
+        Route::post('/settings/credentials/otp', [SuperAdminProfileController::class, 'requestCredentialsOtp'])->name('profile.credentials.otp');
+        Route::post('/settings/credentials', [SuperAdminProfileController::class, 'updateCredentials'])->name('profile.credentials');
 
         // Store Invoices & Verification
         Route::get('/invoices', [SuperAdminInvoiceController::class, 'index'])->name('invoices.index');

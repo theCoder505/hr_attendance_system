@@ -186,7 +186,7 @@ export default function AdminDashboard({
             <Head title="Store Dashboard - Attendance Management" />
 
             {/* Outlet Tabs Navigation */}
-            <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="mb-6 flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
                 <button
                     onClick={() =>
                         router.get(

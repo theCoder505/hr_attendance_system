@@ -5,32 +5,40 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Mail\SuperAdminOtpMail;
 use App\Models\PlatformSetting;
+use App\Models\WebsiteSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
     /**
-     * Display Super Admin profile settings view.
+     * Display Super Admin Settings view (Branding, Billing Receiving Accounts, Security Profile).
      */
     public function index(): Response
     {
         $superAdmin = Auth::guard('super_admin')->user();
         $platform = PlatformSetting::instance();
+        $branding = WebsiteSetting::current();
 
-        return Inertia::render('super-admin/profile/index', [
+        return Inertia::render('super-admin/settings/index', [
             'superAdmin' => [
                 'id' => $superAdmin->id,
                 'name' => $superAdmin->name,
                 'email' => $superAdmin->email,
                 'session_time' => $superAdmin->session_time,
                 'created_at' => $superAdmin->created_at?->toFormattedDateString(),
+            ],
+            'branding' => [
+                'brandname' => $branding->brandname ?? 'AttendEase Pro',
+                'logo' => $branding->logo,
+                'favicon' => $branding->favicon,
             ],
             'billingSettings' => [
                 'bkash_number' => $platform->bkash_number,
@@ -49,6 +57,42 @@ class ProfileController extends Controller
                 'default_monthly_fee' => (float) ($platform->default_monthly_fee ?: 500.00),
             ],
         ]);
+    }
+
+    /**
+     * Update global platform Branding & Identity (Brand Name, Logo, Favicon).
+     */
+    public function updateBranding(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'brandname' => ['required', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
+            'favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,svg,webp', 'max:1024'],
+        ]);
+
+        $branding = WebsiteSetting::current();
+
+        $data = [
+            'brandname' => trim($request->brandname),
+        ];
+
+        if ($request->hasFile('logo')) {
+            if (! empty($branding->logo) && Storage::disk('public')->exists($branding->logo)) {
+                Storage::disk('public')->delete($branding->logo);
+            }
+            $data['logo'] = $request->file('logo')->store('settings', 'public');
+        }
+
+        if ($request->hasFile('favicon')) {
+            if (! empty($branding->favicon) && Storage::disk('public')->exists($branding->favicon)) {
+                Storage::disk('public')->delete($branding->favicon);
+            }
+            $data['favicon'] = $request->file('favicon')->store('settings', 'public');
+        }
+
+        $branding->update($data);
+
+        return back()->with('success', 'Global platform Branding & Identity updated successfully.');
     }
 
     /**
@@ -99,6 +143,7 @@ class ProfileController extends Controller
      */
     public function updateProfile(Request $request): RedirectResponse
     {
+        /** @var \App\Models\SuperAdmin $superAdmin */
         $superAdmin = Auth::guard('super_admin')->user();
 
         $data = $request->validate([
@@ -119,6 +164,7 @@ class ProfileController extends Controller
      */
     public function requestCredentialsOtp(): RedirectResponse
     {
+        /** @var \App\Models\SuperAdmin $superAdmin */
         $superAdmin = Auth::guard('super_admin')->user();
         $otp = $superAdmin->generateOtp(10);
 
@@ -136,6 +182,7 @@ class ProfileController extends Controller
      */
     public function updateCredentials(Request $request): RedirectResponse
     {
+        /** @var \App\Models\SuperAdmin $superAdmin */
         $superAdmin = Auth::guard('super_admin')->user();
 
         $request->validate([

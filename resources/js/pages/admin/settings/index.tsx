@@ -68,16 +68,13 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
     const maxOutlets = Number(admin.max_outlets) > 0 ? Number(admin.max_outlets) : 5;
     const isQuotaFull = outlets.length >= maxOutlets;
 
-    // Form 1: General Settings
+    // Form 1: General Settings (Attendance & Shift Rules)
     const generalForm = useForm({
-        brandname: settings.brandname || '',
         office_starting_time: settings.office_starting_time || '09:00',
         office_closing_time: settings.office_closing_time || '17:00',
         office_ipv4_addr: settings.office_ipv4_addr || '127.0.0.1',
         missing_checkout_early_leave_minutes: settings.missing_checkout_early_leave_minutes || 60,
         admin_login_2fa_enabled: settings.admin_login_2fa_enabled ?? true,
-        logo: null as File | null,
-        favicon: null as File | null,
     });
 
     // Form 2: Profile Settings
@@ -264,7 +261,7 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
                         }`}
                 >
                     <Settings className="h-4 w-4" />
-                    Attendance Rules & Brand
+                    Attendance Rules
                 </button>
 
                 <button
@@ -282,57 +279,6 @@ export default function SettingsIndex({ settings, outlets = [], admin, clientIp 
             {/* TAB 1: General & Rules */}
             {activeTab === 'general' && (
                 <form onSubmit={handleGeneralSubmit} className="space-y-6 max-w-9xl">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-                        <h3 className="font-bold text-base text-slate-900 dark:text-white mb-1">
-                            Branding & Identity
-                        </h3>
-                        <p className="text-xs text-slate-400 mb-5">
-                            Customize the brand name, system logos, and header appearance.
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                                    System Brand Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={generalForm.data.brandname}
-                                    onChange={(e) => generalForm.setData('brandname', e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                />
-                                {generalForm.errors.brandname && (
-                                    <p className="text-rose-500 text-xs mt-1">{generalForm.errors.brandname}</p>
-                                )}
-                            </div>
-
-                            <ImageUploadPreview
-                                id="setting-logo"
-                                label="Brand Logo"
-                                currentImageUrl={settings.logo ? `/storage/${settings.logo}` : null}
-                                selectedFile={generalForm.data.logo}
-                                onFileChange={(file) => generalForm.setData('logo', file)}
-                                accept="image/*,.jpeg,.jpg,.png,.webp,.svg"
-                                aspectRatio="auto"
-                                helperText="PNG, JPG, SVG or WEBP (Max 2MB)"
-                                error={generalForm.errors.logo}
-                            />
-
-                            <ImageUploadPreview
-                                id="setting-favicon"
-                                label="Favicon Icon"
-                                currentImageUrl={settings.favicon ? `/storage/${settings.favicon}` : null}
-                                selectedFile={generalForm.data.favicon}
-                                onFileChange={(file) => generalForm.setData('favicon', file)}
-                                accept="image/*,.ico,.png,.svg"
-                                aspectRatio="square"
-                                helperText="ICO, PNG or SVG (Max 1MB)"
-                                error={generalForm.errors.favicon}
-                            />
-                        </div>
-                    </div>
-
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                         <h3 className="font-bold text-base text-slate-900 dark:text-white mb-1">
                             Office Schedule & Network Security Rules

@@ -47,7 +47,7 @@ class SettingsController extends Controller
     }
 
     /**
-     * Update website / attendance rules settings for this store.
+     * Update attendance rules settings for this store.
      */
     public function updateGeneral(UpdateSettingsRequest $request): RedirectResponse
     {
@@ -60,27 +60,15 @@ class SettingsController extends Controller
             $data['office_ipv4_addr'] = '127.0.0.1';
         }
 
-        if ($request->hasFile('logo')) {
-            if (! empty($settings->logo) && Storage::disk('public')->exists($settings->logo)) {
-                Storage::disk('public')->delete($settings->logo);
-            }
-            $data['logo'] = $request->file('logo')->store('settings', 'public');
-        } else {
-            $data['logo'] = $settings->logo;
-        }
+        $settings->update([
+            'office_starting_time' => $data['office_starting_time'],
+            'office_closing_time' => $data['office_closing_time'],
+            'office_ipv4_addr' => $data['office_ipv4_addr'],
+            'missing_checkout_early_leave_minutes' => $data['missing_checkout_early_leave_minutes'],
+            'admin_login_2fa_enabled' => $data['admin_login_2fa_enabled'],
+        ]);
 
-        if ($request->hasFile('favicon')) {
-            if (! empty($settings->favicon) && Storage::disk('public')->exists($settings->favicon)) {
-                Storage::disk('public')->delete($settings->favicon);
-            }
-            $data['favicon'] = $request->file('favicon')->store('settings', 'public');
-        } else {
-            $data['favicon'] = $settings->favicon;
-        }
-
-        $settings->update($data);
-
-        return back()->with('success', 'Store & Attendance settings updated successfully.');
+        return back()->with('success', 'Attendance & Security rules updated successfully.');
     }
 
     /**

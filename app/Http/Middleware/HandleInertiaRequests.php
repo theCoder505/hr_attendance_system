@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'name' => $settings->brandname ?? config('app.name'),
             'settings' => $settings,
+            'timezone' => config('app.timezone', 'Asia/Dhaka'),
             'auth' => [
                 'admin' => $admin ? [
                     'id' => $admin->id,

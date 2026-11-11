@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\WebsiteSetting;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,23 +30,31 @@ class AttendancePageController extends Controller
             'officeStartingTime' => $settings->office_starting_time,
             'officeClosingTime' => $settings->office_closing_time,
             'clientIp' => $request->ip(),
+            'timezone' => config('app.timezone', 'Asia/Dhaka'),
+            'serverTime' => Carbon::now()->toIso8601String(),
         ]);
     }
 
     /**
      * Display the dedicated Service Suspended page for employees.
+     * If the store is not suspended (or no suspended store matches), automatically redirect to the index page.
      */
-    public function suspended(Request $request): Response
+    public function suspended(Request $request): Response|RedirectResponse
     {
         $settings = WebsiteSetting::current();
         $storeId = $request->query('store_id');
-        $store = $storeId ? \App\Models\Admin::where('store_id', $storeId)->first() : null;
+        $store = $storeId ? Admin::where('store_id', $storeId)->first() : null;
+
+        // If no store is specified or the store is NOT suspended, redirect back to attendance index
+        if (! $store || ! $store->isSuspended()) {
+            return redirect()->route('attendance.index');
+        }
 
         return Inertia::render('attendance/suspended', [
             'brandname' => $settings->brandname ?? 'AttendEase',
             'logo' => $settings->logo,
-            'storeName' => $store?->name,
-            'storeId' => $store?->store_id,
+            'storeName' => $store->name,
+            'storeId' => $store->store_id,
         ]);
     }
 

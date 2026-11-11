@@ -1,6 +1,6 @@
-import ThemeToggle from '@/components/theme-toggle';
 import { Head, Link } from '@inertiajs/react';
-import { AlertOctagon, ArrowLeft, CreditCard, HelpCircle, ShieldAlert, Store } from 'lucide-react';
+import { AlertOctagon, CreditCard, HelpCircle, ShieldAlert, Store } from 'lucide-react';
+import SurfaceLayout from '@/components/surface-layout';
 
 interface Props {
     brandname: string;
@@ -11,37 +11,8 @@ interface Props {
 
 export default function AttendanceSuspended({ brandname, logo, storeName, storeId }: Props) {
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100 flex flex-col justify-between">
+        <SurfaceLayout brandname={brandname} logo={logo}>
             <Head title={`Service Suspended - ${brandname}`} />
-
-            {/* Top Navbar */}
-            <header className="border-b border-slate-200 bg-white/80 px-4 py-3.5 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80 sticky top-0 z-30">
-                <div className="mx-auto flex max-w-5xl items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        {logo ? (
-                            <img src={`/storage/${logo}`} alt={brandname} className="h-8 w-auto rounded-lg object-contain" />
-                        ) : (
-                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-600 text-white font-black text-sm shadow-md shadow-rose-600/20">
-                                !
-                            </div>
-                        )}
-                        <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
-                            {brandname}
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <ThemeToggle variant="dropdown" />
-                        <Link
-                            href="/store/login"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
-                        >
-                            <Store className="h-3.5 w-3.5" />
-                            <span>Store Login</span>
-                        </Link>
-                    </div>
-                </div>
-            </header>
 
             {/* Main Content */}
             <main className="mx-auto max-w-xl w-full px-4 py-12 flex-1 flex items-center justify-center">
@@ -96,22 +67,6 @@ export default function AttendanceSuspended({ brandname, logo, storeName, storeI
                     </div>
                 </div>
             </main>
-
-            {/* Footer */}
-            <footer className="border-t border-slate-200 bg-white/50 px-4 py-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
-                <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-                    <p>&copy; {new Date().getFullYear()} {brandname}. All rights reserved.</p>
-                    <div className="flex items-center gap-4">
-                        <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
-                            Contact Platform Support
-                        </Link>
-                        <Link href="/user-manual" className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
-                            User Manual
-                        </Link>
-                    </div>
-                </div>
-            </footer>
-        </div>
+        </SurfaceLayout>
     );
 }
-
