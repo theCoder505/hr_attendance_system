@@ -2,7 +2,8 @@ import FileUploadPreview from '@/components/file-upload-preview';
 import ImageUploadPreview from '@/components/image-upload-preview';
 import AdminLayout from '@/layouts/admin-layout';
 import { showConfirm, showError, showToast } from '@/lib/swal';
-import { Head, router, useForm } from '@inertiajs/react';
+import { getTodayDateString } from '@/lib/utils';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { CheckCircle2, Clock, Copy, Edit3, Eye, FileText, RefreshCw, Search, Store, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -48,6 +49,41 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [outletFilter, setOutletFilter] = useState(filters.outlet_id || '');
 
+    const { today: sharedToday, timezone: sharedTimezone } = usePage<{ today?: string; timezone?: string }>().props;
+    const todayStr = sharedToday || getTodayDateString(sharedTimezone);
+
+    // Form for creating new employee
+    const createForm = useForm({
+        name: '',
+        phone: '',
+        role: '',
+        work_desc: '',
+        outlet_id: outlets.length > 0 ? String(outlets[0].id) : '',
+        salary: '15000',
+        working_hours: '8.00',
+        check_in_time: defaultTimes.check_in_time || '09:00',
+        check_out_time: defaultTimes.check_out_time || '17:00',
+        joining_date: todayStr,
+        image: null as File | null,
+        appointment_letter: null as File | null,
+    });
+
+    // Form for editing employee
+    const editForm = useForm({
+        name: '',
+        phone: '',
+        role: '',
+        work_desc: '',
+        outlet_id: '',
+        salary: '',
+        working_hours: '',
+        check_in_time: '',
+        check_out_time: '',
+        joining_date: '',
+        image: null as File | null,
+        appointment_letter: null as File | null,
+    });
+
     const allOutletsFull = outlets.length > 0 && outlets.every((o) => (o.employees_count || 0) >= (o.max_employees || maxEmployeesPerOutlet));
 
     const handleOpenCreateModal = () => {
@@ -70,38 +106,6 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
     const selectedEditLimit = selectedEditOutlet?.max_employees || maxEmployeesPerOutlet;
     const isTransferringOutlet = Boolean(selectedEmployee && String(selectedEmployee.outlet_id) !== String(editForm.data.outlet_id));
     const isSelectedEditOutletFull = Boolean(isTransferringOutlet && selectedEditOutlet && (selectedEditOutlet.employees_count || 0) >= selectedEditLimit);
-
-    // Form for creating new employee
-    const createForm = useForm({
-        name: '',
-        phone: '',
-        role: '',
-        work_desc: '',
-        outlet_id: outlets.length > 0 ? String(outlets[0].id) : '',
-        salary: '15000',
-        working_hours: '8.00',
-        check_in_time: defaultTimes.check_in_time || '09:00',
-        check_out_time: defaultTimes.check_out_time || '17:00',
-        joining_date: new Date().toISOString().split('T')[0],
-        image: null as File | null,
-        appointment_letter: null as File | null,
-    });
-
-    // Form for editing employee
-    const editForm = useForm({
-        name: '',
-        phone: '',
-        role: '',
-        work_desc: '',
-        outlet_id: '',
-        salary: '',
-        working_hours: '',
-        check_in_time: '',
-        check_out_time: '',
-        joining_date: '',
-        image: null as File | null,
-        appointment_letter: null as File | null,
-    });
 
     // Search & Filter
     const handleFilter = (searchVal = searchTerm, statusVal = statusFilter, outletVal = outletFilter) => {

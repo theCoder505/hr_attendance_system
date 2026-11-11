@@ -1,8 +1,8 @@
 import AdminLayout from '@/layouts/admin-layout';
 import StoragePieChart, { StorageDetails } from '@/components/storage-pie-chart';
 import { showConfirm } from '@/lib/swal';
-import { formatMinutes } from '@/lib/utils';
-import { Head, router, useForm } from '@inertiajs/react';
+import { formatMinutes, getTodayDateString } from '@/lib/utils';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
     CalendarDays,
@@ -31,6 +31,8 @@ interface OutletItem {
 }
 
 interface Props {
+    today?: string;
+    timezone?: string;
     selectedDate: string;
     currentMonth: number;
     currentYear: number;
@@ -52,6 +54,8 @@ interface Props {
 }
 
 export default function AdminDashboard({
+    today,
+    timezone,
     selectedDate,
     currentMonth,
     currentYear,
@@ -64,6 +68,10 @@ export default function AdminDashboard({
     settings,
     storageDetails,
 }: Props) {
+    const { timezone: sharedTimezone, today: sharedToday } = usePage<{ timezone?: string; today?: string }>().props;
+    const appTimezone = timezone || sharedTimezone || 'Asia/Dhaka';
+    const todayStr = today || sharedToday || getTodayDateString(appTimezone);
+
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -108,19 +116,72 @@ export default function AdminDashboard({
 
     // Jump to Date
     const handleDateClick = (dateStr: string) => {
+        const parts = dateStr.split('-').map(Number);
+        const dYear = parts[0] || currentYear;
+        const dMonth = parts[1] || currentMonth;
         router.get(
             '/store/dashboard',
-            { date: dateStr, month: currentMonth, year: currentYear, outlet_id: activeOutletId },
+            { date: dateStr, month: dMonth, year: dYear, outlet_id: activeOutletId },
             { preserveState: true }
         );
         addForm.setData('date', dateStr);
     };
 
+    // Jump to Today (always shows fresh data for today whatever the current state is)
+    const handleTodayClick = () => {
+        const parts = todayStr.split('-').map(Number);
+        const tYear = parts[0] || currentYear;
+        const tMonth = parts[1] || currentMonth;
+        setAddModalOpen(false);
+        setEditModalOpen(false);
+        setEditingRecord(null);
+        router.get(
+            '/store/dashboard',
+            {
+                date: todayStr,
+                month: tMonth,
+                year: tYear,
+                outlet_id: activeOutletId,
+            },
+            {
+                preserveState: false,
+                preserveScroll: true,
+            }
+        );
+        addForm.setData('date', todayStr);
+    };
+
     // Open Edit Modal
     const openEditModal = (record: any) => {
         setEditingRecord(record);
-        const inTime = record.check_in_at ? record.check_in_at.substring(11, 16) : '';
-        const outTime = record.check_out_at ? record.check_out_at.substring(11, 16) : '';
+        let inTime = '';
+        let outTime = '';
+        if (record.check_in_at) {
+            try {
+                const d = new Date(record.check_in_at);
+                inTime = d.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: appTimezone,
+                });
+            } catch {
+                inTime = record.check_in_at.substring(11, 16);
+            }
+        }
+        if (record.check_out_at) {
+            try {
+                const d = new Date(record.check_out_at);
+                outTime = d.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: appTimezone,
+                });
+            } catch {
+                outTime = record.check_out_at.substring(11, 16);
+            }
+        }
         editForm.setData({
             check_in_time: inTime,
             check_out_time: outTime,
@@ -173,13 +234,17 @@ export default function AdminDashboard({
     // Calendar grid calculations
     const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 = Sun
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-    const todayStr = new Date().toISOString().split('T')[0];
 
     const formatTime = (dtStr: string | null) => {
         if (!dtStr) return '—';
         try {
             const d = new Date(dtStr);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            return d.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: appTimezone,
+            });
         } catch {
             return dtStr;
         }
@@ -371,8 +436,8 @@ export default function AdminDashboard({
                                 <ChevronLeft className="h-4 w-4" />
                             </button>
                             <button
-                                onClick={() => handleDateClick(todayStr)}
-                                className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900/60 transition-colors"
+                                onClick={handleTodayClick}
+                                className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900/60 transition-colors cursor-pointer"
                             >
                                 Today
                             </button>
@@ -476,12 +541,21 @@ export default function AdminDashboard({
                             <div className="flex items-center gap-2.5">
                                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                                     Attendance for{' '}
-                                    {new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, {
-                                        weekday: 'long',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                    })}
+                                    {(() => {
+                                        try {
+                                            const parts = selectedDate.split('-').map(Number);
+                                            if (parts.length === 3) {
+                                                const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                                                return d.toLocaleDateString(undefined, {
+                                                    weekday: 'long',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric',
+                                                });
+                                            }
+                                        } catch {}
+                                        return selectedDate;
+                                    })()}
                                 </h3>
                                 {selectedDate === todayStr && (
                                     <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">

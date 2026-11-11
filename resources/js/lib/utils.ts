@@ -63,3 +63,26 @@ export function formatHumanDueDate(dateStr: string | null | undefined, dueDay?: 
     return String(dateStr);
 }
 
+/**
+ * Get current date string (YYYY-MM-DD) in a given timezone.
+ * Defaults to the application timezone or user's local timezone.
+ */
+export function getTodayDateString(timeZone?: string): string {
+    try {
+        const tz = timeZone || 'Asia/Dhaka';
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: tz,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        });
+        return formatter.format(new Date());
+    } catch {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+}
+

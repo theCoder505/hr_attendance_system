@@ -20,11 +20,27 @@ class DashboardController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
-        $selectedDate = $request->query('date', Carbon::today()->toDateString());
-        $carbonDate = Carbon::parse($selectedDate);
+        $appTimezone = config('app.timezone', 'Asia/Dhaka');
+        $today = Carbon::today($appTimezone)->toDateString();
 
-        $month = (int) $request->query('month', $carbonDate->month);
-        $year = (int) $request->query('year', $carbonDate->year);
+        $selectedDate = $request->query('date', $today);
+        $carbonDate = Carbon::parse($selectedDate, $appTimezone);
+
+        if ($request->has('date')) {
+            // When a date is provided (such as Today or picking a day),
+            // ensure month and year match that date's month and year
+            if (! $request->has('month') || $carbonDate->month !== (int) $request->query('month') || $carbonDate->year !== (int) $request->query('year')) {
+                $month = (int) $carbonDate->month;
+                $year = (int) $carbonDate->year;
+            } else {
+                $month = (int) $request->query('month', $carbonDate->month);
+                $year = (int) $request->query('year', $carbonDate->year);
+            }
+        } else {
+            $month = (int) $request->query('month', $carbonDate->month);
+            $year = (int) $request->query('year', $carbonDate->year);
+        }
+
         $activeOutletId = $request->query('outlet_id', 'all');
 
         $outlets = $admin->outlets()->withCount('employees')->orderBy('name')->get();
@@ -58,7 +74,7 @@ class DashboardController extends Controller
         })->values();
 
         // Monthly calendar aggregates: count of present/late per day in selected month
-        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $startOfMonth = Carbon::createFromDate($year, $month, 1, $appTimezone)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
         $monthlyAttendancesQuery = $admin->attendances()->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
@@ -66,8 +82,8 @@ class DashboardController extends Controller
             $monthlyAttendancesQuery->where('outlet_id', (int) $activeOutletId);
         }
 
-        $monthlyAttendances = $monthlyAttendancesQuery->get()->groupBy(function ($item) {
-            return Carbon::parse($item->date)->toDateString();
+        $monthlyAttendances = $monthlyAttendancesQuery->get()->groupBy(function ($item) use ($appTimezone) {
+            return Carbon::parse($item->date, $appTimezone)->toDateString();
         });
 
         $calendarDays = [];
@@ -90,6 +106,8 @@ class DashboardController extends Controller
         $storageDetails = StorageCalculatorService::getStoreStorageDetails($admin);
 
         return Inertia::render('admin/dashboard/index', [
+            'today' => $today,
+            'timezone' => $appTimezone,
             'selectedDate' => $selectedDate,
             'currentMonth' => $month,
             'currentYear' => $year,

@@ -49,11 +49,13 @@ class HandleInertiaRequests extends Middleware
         }
 
         $brandname = ! empty($globalSetting->brandname) ? $globalSetting->brandname : ($settings->brandname ?? config('app.name', 'Attendance'));
+        $appTimezone = config('app.timezone', 'Asia/Dhaka');
 
         return array_merge(parent::share($request), [
             'name' => $brandname,
             'settings' => $settings,
-            'timezone' => config('app.timezone', 'Asia/Dhaka'),
+            'timezone' => $appTimezone,
+            'today' => \Carbon\Carbon::today($appTimezone)->toDateString(),
             'auth' => [
                 'admin' => $admin ? [
                     'id' => $admin->id,
