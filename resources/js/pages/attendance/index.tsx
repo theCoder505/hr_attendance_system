@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/react';
 import { CheckCircle2, LogIn, LogOut, RefreshCw, ShieldAlert, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import SurfaceLayout from '@/components/surface-layout';
+import FingerprintScanner from '@/components/fingerprint-scanner';
 
 interface Props {
     brandname: string;
@@ -237,18 +238,20 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
     };
 
     // Handle Check In
-    const handleCheckIn = async () => {
+    const handleCheckIn = async (skipConfirm: boolean = false) => {
         const token = localStorage.getItem('device_token');
         if (!token) return;
 
-        const confirmed = await showConfirm(
-            'Confirm Clock In',
-            `Ready to clock in for today? Current time: ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`,
-            'Yes, Clock In Now',
-            'info',
-        );
+        if (!skipConfirm) {
+            const confirmed = await showConfirm(
+                'Confirm Clock In',
+                `Ready to clock in for today? Current time: ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+                'Yes, Clock In Now',
+                'info',
+            );
 
-        if (!confirmed) return;
+            if (!confirmed) return;
+        }
 
         setActionLoading(true);
         try {
@@ -295,22 +298,24 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
     };
 
     // Handle Check Out
-    const handleCheckOut = async () => {
+    const handleCheckOut = async (skipConfirm: boolean = false) => {
         const token = localStorage.getItem('device_token');
         if (!token) return;
 
         const isEarly = employee?.check_out_time && currentTime.toTimeString().substring(0, 5) < employee.check_out_time;
 
-        const confirmed = await showConfirm(
-            'Confirm Clock Out',
-            isEarly
-                ? `Note: Current time is before your scheduled shift end (${employee.check_out_time.substring(0, 5)}). Early leave minutes will be calculated.`
-                : 'Are you ready to clock out and complete your shift for today?',
-            'Yes, Clock Out Now',
-            isEarly ? 'warning' : 'info',
-        );
+        if (!skipConfirm || isEarly) {
+            const confirmed = await showConfirm(
+                'Confirm Clock Out',
+                isEarly
+                    ? `Note: Current time is before your scheduled shift end (${employee.check_out_time.substring(0, 5)}). Early leave minutes will be calculated.`
+                    : 'Are you ready to clock out and complete your shift for today?',
+                'Yes, Clock Out Now',
+                isEarly ? 'warning' : 'info',
+            );
 
-        if (!confirmed) return;
+            if (!confirmed) return;
+        }
 
         setActionLoading(true);
         try {
@@ -538,7 +543,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                     </h2>
                                     <p className="mt-2 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
                                         {canCheckIn &&
-                                            `Your scheduled start time is ${employee.check_in_time.substring(0, 5)}. Click below to record your check-in timestamp.`}
+                                            `Your scheduled start time is ${employee.check_in_time.substring(0, 5)}. Touch and hold the fingerprint scanner below to clock in.`}
                                         {canCheckOut && (
                                             <>
                                                 Logged in at{' '}
@@ -551,6 +556,7 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                         ({formatMinutes(activeAttendance?.late_minutes)} late)
                                                     </span>
                                                 )}
+                                                <span className="block mt-1">Touch and hold the fingerprint scanner below to clock out.</span>
                                             </>
                                         )}
                                         {!canCheckIn && !canCheckOut && (
@@ -568,46 +574,37 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                     </p>
                                 </div>
 
-                                {/* Primary Glow Buttons */}
-                                <div className="flex flex-col items-center justify-center gap-4 pt-2 sm:flex-row">
+                                {/* Primary Biometric Fingerprint Interaction */}
+                                <div className="flex flex-col items-center justify-center pt-2">
                                     {canCheckIn && (
-                                        <button
-                                            onClick={handleCheckIn}
+                                        <FingerprintScanner
+                                            mode="check-in"
+                                            onScanComplete={() => handleCheckIn(true)}
+                                            loading={actionLoading}
                                             disabled={actionLoading}
-                                            className="flex w-full min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-emerald-600/30 transition-all hover:scale-105 hover:from-emerald-500 hover:to-teal-500 active:scale-95 disabled:opacity-50 sm:w-auto"
-                                        >
-                                            {actionLoading ? (
-                                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                            ) : (
-                                                <>
-                                                    <LogIn className="h-5 w-5" />
-                                                    <span>Clock In Now</span>
-                                                </>
-                                            )}
-                                        </button>
+                                        />
                                     )}
 
                                     {canCheckOut && (
-                                        <button
-                                            onClick={handleCheckOut}
+                                        <FingerprintScanner
+                                            mode="check-out"
+                                            onScanComplete={() => handleCheckOut(true)}
+                                            loading={actionLoading}
                                             disabled={actionLoading}
-                                            className="flex w-full min-w-[240px] cursor-pointer items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-amber-600 to-indigo-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-amber-600/30 transition-all hover:scale-105 hover:from-amber-500 hover:to-indigo-500 active:scale-95 disabled:opacity-50 sm:w-auto"
-                                        >
-                                            {actionLoading ? (
-                                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                            ) : (
-                                                <>
-                                                    <LogOut className="h-5 w-5" />
-                                                    <span>Clock Out Now</span>
-                                                </>
-                                            )}
-                                        </button>
+                                        />
                                     )}
 
                                     {!canCheckIn && !canCheckOut && (
-                                        <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
-                                            <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-                                            <span>Thank you! Your full attendance record for today is locked and synchronized.</span>
+                                        <div className="flex flex-col items-center justify-center rounded-3xl border border-emerald-500/20 bg-emerald-50/50 p-6 text-center shadow-inner dark:border-emerald-500/20 dark:bg-emerald-950/20">
+                                            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 shadow-sm dark:bg-emerald-500/20">
+                                                <CheckCircle2 className="h-9 w-9" />
+                                            </div>
+                                            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                                                Today's Shift Log Completed
+                                            </h3>
+                                            <p className="mt-1 max-w-sm text-xs text-slate-600 dark:text-slate-400">
+                                                Thank you! Your check-in and check-out logs have been recorded and securely synchronized with the central attendance server.
+                                            </p>
                                         </div>
                                     )}
                                 </div>
