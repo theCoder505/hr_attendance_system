@@ -50,6 +50,22 @@ class Attendance extends Model
                 }
             }
         });
+
+        static::saved(function ($attendance) {
+            if (! empty($attendance->employee_id)) {
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_status_{$attendance->employee_id}");
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_monthly_{$attendance->employee_id}");
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_history_{$attendance->employee_id}");
+            }
+        });
+
+        static::deleted(function ($attendance) {
+            if (! empty($attendance->employee_id)) {
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_status_{$attendance->employee_id}");
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_monthly_{$attendance->employee_id}");
+                \Illuminate\Support\Facades\Cache::forget("employee_attendance_history_{$attendance->employee_id}");
+            }
+        });
     }
 
     public function admin(): BelongsTo

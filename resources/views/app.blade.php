@@ -56,9 +56,18 @@
             })();
 
             if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/sw.js').catch(function() {});
-                });
+                // If on super-admin or store management portals, actively unregister service workers
+                if (window.location.pathname.startsWith('/super-admin') || window.location.pathname.startsWith('/store')) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for (let registration of registrations) {
+                            registration.unregister();
+                        }
+                    }).catch(function() {});
+                } else {
+                    window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('/sw.js').catch(function() {});
+                    });
+                }
             }
         </script>
     </head>

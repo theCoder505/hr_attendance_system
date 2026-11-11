@@ -130,7 +130,7 @@ class ProfileController extends Controller
 
         WebsiteSetting::generateManifest();
 
-        return back()->with('success', 'Global platform Branding & Identity updated successfully.');
+        return redirect()->route('super-admin.profile.index')->with('success', 'Global platform Branding & Identity updated successfully.');
     }
 
     /**
@@ -173,7 +173,7 @@ class ProfileController extends Controller
             'default_monthly_fee' => (float) $request->default_monthly_fee,
         ]);
 
-        return back()->with('success', 'Platform billing receiving accounts & deadline settings updated successfully.');
+        return redirect()->route('super-admin.profile.index')->with('success', 'Platform billing receiving accounts & deadline settings updated successfully.');
     }
 
     /**
@@ -194,7 +194,7 @@ class ProfileController extends Controller
             'session_time' => (int) ($data['session_time'] ?: 30),
         ]);
 
-        return back()->with('success', 'Super admin profile updated successfully.');
+        return redirect()->route('super-admin.profile.index')->with('success', 'Super admin profile updated successfully.');
     }
 
     /**
@@ -212,7 +212,7 @@ class ProfileController extends Controller
             Log::error('Failed to send Super Admin credentials update OTP: ' . $e->getMessage());
         }
 
-        return back()->with('success', "A 6-digit OTP code has been dispatched to {$superAdmin->email}. Please enter it to authorize the changes.");
+        return redirect()->route('super-admin.profile.index')->with('success', "A 6-digit OTP code has been dispatched to {$superAdmin->email}. Please enter it to authorize the changes.");
     }
 
     /**
@@ -231,7 +231,7 @@ class ProfileController extends Controller
         ]);
 
         if (! $superAdmin->verifyOtp($request->otp)) {
-            return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please request a new code.']);
+            return redirect()->route('super-admin.profile.index')->withErrors(['otp' => 'Invalid or expired OTP code. Please request a new code.']);
         }
 
         // Update email if provided
@@ -242,14 +242,14 @@ class ProfileController extends Controller
         // Update password if provided
         if (! empty($request->password)) {
             if (! empty($request->current_password) && ! Hash::check($request->current_password, $superAdmin->password)) {
-                return back()->withErrors(['current_password' => 'The provided current password does not match our records.']);
+                return redirect()->route('super-admin.profile.index')->withErrors(['current_password' => 'The provided current password does not match our records.']);
             }
             $superAdmin->password = Hash::make($request->password);
         }
 
         $superAdmin->save();
 
-        return back()->with('success', 'Super admin credentials updated successfully!');
+        return redirect()->route('super-admin.profile.index')->with('success', 'Super admin credentials updated successfully!');
     }
 
     /**
@@ -267,7 +267,7 @@ class ProfileController extends Controller
         $platform = PlatformSetting::instance();
         $platform->update($validated);
 
-        return back()->with('success', 'Official contact and social channels updated successfully!');
+        return redirect()->route('super-admin.profile.index')->with('success', 'Official contact and social channels updated successfully!');
     }
 }
 

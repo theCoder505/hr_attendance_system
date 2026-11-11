@@ -72,7 +72,7 @@ class SettingsController extends Controller
             'admin_login_2fa_enabled' => $data['admin_login_2fa_enabled'],
         ]);
 
-        return back()->with('success', 'Attendance & Security rules updated successfully.');
+        return redirect()->route('admin.settings.index')->with('success', 'Attendance & Security rules updated successfully.');
     }
 
     /**
@@ -85,7 +85,7 @@ class SettingsController extends Controller
         $data['two_factor_enabled'] = $request->boolean('two_factor_enabled');
         $admin->update($data);
 
-        return back()->with('success', 'Admin profile updated successfully.');
+        return redirect()->route('admin.settings.index')->with('success', 'Admin profile updated successfully.');
     }
 
     /**
@@ -102,7 +102,7 @@ class SettingsController extends Controller
             Log::error('Failed to send credentials update OTP: ' . $e->getMessage());
         }
 
-        return back()->with('success', "A 6-digit OTP code has been dispatched to {$admin->email}. Please enter it to verify the changes.");
+        return redirect()->route('admin.settings.index')->with('success', "A 6-digit OTP code has been dispatched to {$admin->email}. Please enter it to verify the changes.");
     }
 
     /**
@@ -113,7 +113,7 @@ class SettingsController extends Controller
         $admin = Auth::guard('admin')->user();
 
         if (! $admin->verifyOtp($request->otp)) {
-            return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please request a new one.']);
+            return redirect()->route('admin.settings.index')->withErrors(['otp' => 'Invalid or expired OTP code. Please request a new one.']);
         }
 
         // If updating email
@@ -127,13 +127,13 @@ class SettingsController extends Controller
         // If updating password
         if (! empty($request->password)) {
             if (! empty($request->current_password) && ! Hash::check($request->current_password, $admin->password)) {
-                return back()->withErrors(['current_password' => 'The provided current password does not match.']);
+                return redirect()->route('admin.settings.index')->withErrors(['current_password' => 'The provided current password does not match.']);
             }
             $admin->password = Hash::make($request->password);
         }
 
         $admin->save();
 
-        return back()->with('success', 'Security credentials updated successfully.');
+        return redirect()->route('admin.settings.index')->with('success', 'Security credentials updated successfully.');
     }
 }

@@ -12,15 +12,29 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class AttendancePageController extends Controller
 {
     /**
+     * Cache-busting headers for real-time attendance pages and endpoints.
+     */
+    protected function noCacheHeaders(): array
+    {
+        return [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+    }
+
+    /**
      * Render the employee attendance public portal page.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): SymfonyResponse
     {
         $settings = WebsiteSetting::current();
 
@@ -32,7 +46,7 @@ class AttendancePageController extends Controller
             'clientIp' => $request->ip(),
             'timezone' => config('app.timezone', 'Asia/Dhaka'),
             'serverTime' => Carbon::now()->toIso8601String(),
-        ]);
+        ])->toResponse($request)->withHeaders($this->noCacheHeaders());
     }
 
     /**
@@ -115,7 +129,7 @@ class AttendancePageController extends Controller
             'canCheckOut' => $canCheckOut,
             'monthlyStats' => $monthlyStats,
             'currentTime' => Carbon::now()->toIso8601String(),
-        ]);
+        ])->withHeaders($this->noCacheHeaders());
     }
 
     /**
@@ -128,7 +142,13 @@ class AttendancePageController extends Controller
 
         $result = $attendanceService->checkIn($employee);
 
-        return response()->json($result, $result['success'] ? 200 : 422);
+        if ($result['success']) {
+            Cache::forget("employee_attendance_status_{$employee->id}");
+            Cache::forget("employee_attendance_monthly_{$employee->id}");
+            Cache::forget("employee_attendance_history_{$employee->id}");
+        }
+
+        return response()->json($result, $result['success'] ? 200 : 422)->withHeaders($this->noCacheHeaders());
     }
 
     /**
@@ -141,7 +161,13 @@ class AttendancePageController extends Controller
 
         $result = $attendanceService->checkOut($employee);
 
-        return response()->json($result, $result['success'] ? 200 : 422);
+        if ($result['success']) {
+            Cache::forget("employee_attendance_status_{$employee->id}");
+            Cache::forget("employee_attendance_monthly_{$employee->id}");
+            Cache::forget("employee_attendance_history_{$employee->id}");
+        }
+
+        return response()->json($result, $result['success'] ? 200 : 422)->withHeaders($this->noCacheHeaders());
     }
 
     /**
@@ -168,6 +194,6 @@ class AttendancePageController extends Controller
             'records' => $records,
             'month' => $month,
             'year' => $year,
-        ]);
+        ])->withHeaders($this->noCacheHeaders());
     }
 }

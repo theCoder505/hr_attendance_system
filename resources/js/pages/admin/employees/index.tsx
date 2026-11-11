@@ -107,6 +107,60 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
     const isTransferringOutlet = Boolean(selectedEmployee && String(selectedEmployee.outlet_id) !== String(editForm.data.outlet_id));
     const isSelectedEditOutletFull = Boolean(isTransferringOutlet && selectedEditOutlet && (selectedEditOutlet.employees_count || 0) >= selectedEditLimit);
 
+    const formatReadableDate = (value?: string | null) => {
+        if (!value) return 'N/A';
+
+        const text = value.toString().trim();
+        const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+        if (isoMatch) {
+            const [, year, month, day] = isoMatch;
+            const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+            if (!Number.isNaN(parsedDate.getTime())) {
+                return parsedDate.toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                });
+            }
+        }
+
+        const parsedDate = new Date(text);
+        if (!Number.isNaN(parsedDate.getTime())) {
+            return parsedDate.toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+            });
+        }
+
+        return text;
+    };
+
+    const formatReadableTime = (value?: string | null) => {
+        if (!value) return 'N/A';
+
+        const raw = value.toString().trim();
+        if (!raw) return 'N/A';
+
+        const [hoursStr = '0', minutesStr = '0'] = raw.split(':');
+        const hours = Number(hoursStr);
+        const minutes = Number(minutesStr);
+
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return raw;
+
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const normalizedHours = hours % 12 || 12;
+
+        return `${normalizedHours}:${String(minutes).padStart(2, '0')} ${period}`;
+    };
+
+    const formatReadableTimeRange = (start?: string | null, end?: string | null) => {
+        if (!start && !end) return 'N/A';
+        return `${formatReadableTime(start)} - ${formatReadableTime(end)}`;
+    };
+
     // Search & Filter
     const handleFilter = (searchVal = searchTerm, statusVal = statusFilter, outletVal = outletFilter) => {
         router.get(
@@ -949,7 +1003,7 @@ export default function EmployeeIndex({ employees, outlets = [], maxEmployeesPer
                                 </div>
                                 <div>
                                     <span className="mb-0.5 block text-slate-400">Joining Date:</span>
-                                    <span className="font-semibold text-slate-900 dark:text-white">{selectedEmployee.joining_date}</span>
+                                    <span className="font-semibold text-slate-900 dark:text-white">{formatReadableDate(selectedEmployee.joining_date)}</span>
                                 </div>
                                 <div>
                                     <span className="mb-0.5 block text-slate-400">Shift Schedule:</span>
