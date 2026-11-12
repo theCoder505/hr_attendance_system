@@ -40,7 +40,9 @@ class AttendanceService
 
         if ($yesterdayAttendance) {
             // Next check-in window begins at employee's check_in_time today
-            $todayNextCheckin = Carbon::parse($today . ' ' . $employee->check_in_time);
+            $settings = WebsiteSetting::forAdmin($employee->admin_id);
+            $checkInTime = $employee->check_in_time ?: ($settings->office_starting_time ?? '09:00:00');
+            $todayNextCheckin = Carbon::parse($today . ' ' . $checkInTime);
             if (Carbon::now()->isBefore($todayNextCheckin)) {
                 return $yesterdayAttendance;
             }
@@ -74,7 +76,9 @@ class AttendanceService
         }
 
         // Calculate late minutes
-        $scheduledCheckIn = Carbon::parse($date . ' ' . $employee->check_in_time);
+        $settings = WebsiteSetting::forAdmin($employee->admin_id);
+        $scheduledStartTime = $employee->check_in_time ?: ($settings->office_starting_time ?? '09:00:00');
+        $scheduledCheckIn = Carbon::parse($date . ' ' . $scheduledStartTime);
         $lateMinutes = 0;
         if ($time->isAfter($scheduledCheckIn)) {
             $lateMinutes = (int) $scheduledCheckIn->diffInMinutes($time);
@@ -98,9 +102,11 @@ class AttendanceService
             'device_token_expires_at' => Carbon::now()->addMonth(),
         ]);
 
+        $lateFormatted = sprintf('%02d:%02d', floor($lateMinutes / 60), $lateMinutes % 60);
+
         return [
             'success' => true,
-            'message' => 'Checked in successfully' . ($lateMinutes > 0 ? " (Late by {$lateMinutes} min)" : '!'),
+            'message' => 'Checked in successfully' . ($lateMinutes > 0 ? " (Late by {$lateFormatted})" : '!'),
             'attendance' => $attendance,
         ];
     }
@@ -122,37 +128,41 @@ class AttendanceService
             ];
         }
 
-        // Compute early leave and overtime relative to scheduled check-out
-        $attDate = Carbon::parse($activeAttendance->date)->toDateString();
-        $scheduledCheckOut = Carbon::parse($attDate . ' ' . $employee->check_out_time);
+        $checkInAt = Carbon::parse($activeAttendance->check_in_at);
+        $metrics = $this->calculateMetrics(
+            $employee,
+            $activeAttendance->date,
+            $checkInAt,
+            $time
+        );
 
-        // If checkout is overnight (e.g. checkin 20:00, checkout 04:00 next day)
-        $scheduledCheckIn = Carbon::parse($attDate . ' ' . $employee->check_in_time);
-        if ($scheduledCheckOut->isBefore($scheduledCheckIn)) {
-            $scheduledCheckOut->addDay();
-        }
-
-        $earlyLeaveMinutes = 0;
-        $overtimeMinutes = 0;
-
-        if ($time->isBefore($scheduledCheckOut)) {
-            $earlyLeaveMinutes = (int) $time->diffInMinutes($scheduledCheckOut);
-        } elseif ($time->isAfter($scheduledCheckOut)) {
-            $overtimeMinutes = (int) $scheduledCheckOut->diffInMinutes($time);
-        }
+        $resolvedCheckOut = $metrics['adjusted_check_out_at'] ?? $time;
 
         $activeAttendance->update([
-            'check_out_at' => $time,
-            'early_leave_minutes' => $earlyLeaveMinutes,
-            'overtime_minutes' => $overtimeMinutes,
+            'check_out_at' => $resolvedCheckOut,
+            'late_minutes' => $metrics['late_minutes'],
+            'early_leave_minutes' => $metrics['early_leave_minutes'],
+            'overtime_minutes' => $metrics['overtime_minutes'],
         ]);
+
+        $earlyLeaveMinutes = $metrics['early_leave_minutes'];
+        $overtimeMinutes = $metrics['overtime_minutes'];
+
+        $parts = [];
+        if ($earlyLeaveMinutes > 0) {
+            $earlyFormatted = sprintf('%02d:%02d', floor($earlyLeaveMinutes / 60), $earlyLeaveMinutes % 60);
+            $parts[] = "Early leave: {$earlyFormatted}";
+        }
+        if ($overtimeMinutes > 0) {
+            $otFormatted = sprintf('%02d:%02d', floor($overtimeMinutes / 60), $overtimeMinutes % 60);
+            $parts[] = "Overtime: {$otFormatted}";
+        }
 
         return [
             'success' => true,
-            'message' => 'Checked out successfully' .
-                ($earlyLeaveMinutes > 0 ? " (Early leave: {$earlyLeaveMinutes} min)" : '') .
-                ($overtimeMinutes > 0 ? " (Overtime: {$overtimeMinutes} min)" : ''),
+            'message' => 'Checked out successfully' . (! empty($parts) ? ' (' . implode(', ', $parts) . ')' : '!'),
             'attendance' => $activeAttendance,
+            'metrics' => $metrics,
         ];
     }
 
@@ -161,7 +171,7 @@ class AttendanceService
      */
     public function autoCloseExpiredAttendancesForEmployee(Employee $employee): void
     {
-        $settings = WebsiteSetting::current();
+        $settings = WebsiteSetting::forAdmin($employee->admin_id);
         $penaltyMinutes = $settings->missing_checkout_early_leave_minutes ?? 60;
         $now = Carbon::now();
 
@@ -171,15 +181,30 @@ class AttendanceService
             ->get();
 
         foreach ($openAttendances as $att) {
+            $startTimeStr = $employee->check_in_time ?: ($settings->office_starting_time ?? '09:00:00');
+            $endTimeStr = $employee->check_out_time ?: ($settings->office_closing_time ?? '17:00:00');
+
             // Next check-in window began at employee's check_in_time on the next calendar day
-            $nextDayCheckin = Carbon::parse($att->date)->addDay()->setTimeFromTimeString($employee->check_in_time);
+            $nextDayCheckin = Carbon::parse($att->date)->addDay()->setTimeFromTimeString($startTimeStr);
 
             if ($now->greaterThanOrEqualTo($nextDayCheckin)) {
-                // Default virtual check-out as early leave with penalty
-                $scheduledOut = Carbon::parse($att->date . ' ' . $employee->check_out_time);
+                $scheduledIn = Carbon::parse($att->date . ' ' . $startTimeStr);
+                $scheduledOut = Carbon::parse($att->date . ' ' . $endTimeStr);
+                if ($scheduledOut->isBefore($scheduledIn)) {
+                    $scheduledOut->addDay();
+                }
+
+                $autoCheckOut = $scheduledOut->copy()->subMinutes($penaltyMinutes);
+                $checkInAt = Carbon::parse($att->check_in_at);
+                if ($autoCheckOut->isBefore($checkInAt)) {
+                    $autoCheckOut = $checkInAt->copy();
+                }
+
+                $metrics = $this->calculateMetrics($employee, $att->date, $checkInAt, $autoCheckOut);
+
                 $att->update([
-                    'check_out_at' => $scheduledOut->copy()->subMinutes($penaltyMinutes),
-                    'early_leave_minutes' => $penaltyMinutes,
+                    'check_out_at' => $autoCheckOut,
+                    'early_leave_minutes' => max($penaltyMinutes, $metrics['early_leave_minutes']),
                     'overtime_minutes' => 0,
                 ]);
             }
@@ -192,8 +217,6 @@ class AttendanceService
      */
     public function autoCloseAllMissingCheckouts(): int
     {
-        $settings = WebsiteSetting::current();
-        $penaltyMinutes = $settings->missing_checkout_early_leave_minutes ?? 60;
         $now = Carbon::now();
 
         $openAttendances = Attendance::with('employee')
@@ -208,13 +231,32 @@ class AttendanceService
                 continue;
             }
 
-            $nextDayCheckin = Carbon::parse($att->date)->addDay()->setTimeFromTimeString($employee->check_in_time);
+            $settings = WebsiteSetting::forAdmin($employee->admin_id);
+            $penaltyMinutes = $settings->missing_checkout_early_leave_minutes ?? 60;
+
+            $startTimeStr = $employee->check_in_time ?: ($settings->office_starting_time ?? '09:00:00');
+            $endTimeStr = $employee->check_out_time ?: ($settings->office_closing_time ?? '17:00:00');
+
+            $nextDayCheckin = Carbon::parse($att->date)->addDay()->setTimeFromTimeString($startTimeStr);
 
             if ($now->greaterThanOrEqualTo($nextDayCheckin)) {
-                $scheduledOut = Carbon::parse($att->date . ' ' . $employee->check_out_time);
+                $scheduledIn = Carbon::parse($att->date . ' ' . $startTimeStr);
+                $scheduledOut = Carbon::parse($att->date . ' ' . $endTimeStr);
+                if ($scheduledOut->isBefore($scheduledIn)) {
+                    $scheduledOut->addDay();
+                }
+
+                $autoCheckOut = $scheduledOut->copy()->subMinutes($penaltyMinutes);
+                $checkInAt = Carbon::parse($att->check_in_at);
+                if ($autoCheckOut->isBefore($checkInAt)) {
+                    $autoCheckOut = $checkInAt->copy();
+                }
+
+                $metrics = $this->calculateMetrics($employee, $att->date, $checkInAt, $autoCheckOut);
+
                 $att->update([
-                    'check_out_at' => $scheduledOut->copy()->subMinutes($penaltyMinutes),
-                    'early_leave_minutes' => $penaltyMinutes,
+                    'check_out_at' => $autoCheckOut,
+                    'early_leave_minutes' => max($penaltyMinutes, $metrics['early_leave_minutes']),
                     'overtime_minutes' => 0,
                 ]);
                 $closedCount++;
@@ -225,7 +267,26 @@ class AttendanceService
     }
 
     /**
-     * Recalculate late, early leave, overtime for manual or updated record.
+     * Recalculate late, early leave, overtime, and working duration for an attendance record.
+     *
+     * Rules:
+     * 1. Total Working Duration = Check-Out Time - Check-In Time (in minutes)
+     * 2. Late Arrival: If Check-In is later than scheduled office start time, diff in minutes. Otherwise 0.
+     * 3. Early Leave: If Check-Out is earlier than scheduled office end time, diff in minutes. Otherwise 0.
+     * 4. Overtime: max(0, Actual Working Duration - Scheduled Working Duration).
+     *    Never calculated simply because Check-Out is later than scheduled end time.
+     *    Scheduled Working Duration is calculated from office start and end times,
+     *    taking into account configured working hours (excluding unpaid breaks).
+     * 5. Handles overnight shifts safely.
+     *
+     * @return array{
+     *     late_minutes: int,
+     *     early_leave_minutes: int,
+     *     overtime_minutes: int,
+     *     total_working_minutes: int,
+     *     scheduled_working_minutes: int,
+     *     adjusted_check_out_at: ?Carbon
+     * }
      */
     public function calculateMetrics(
         Employee $employee,
@@ -233,13 +294,31 @@ class AttendanceService
         Carbon $checkInAt,
         ?Carbon $checkOutAt = null
     ): array {
-        $scheduledCheckIn = Carbon::parse($date . ' ' . $employee->check_in_time);
-        $scheduledCheckOut = Carbon::parse($date . ' ' . $employee->check_out_time);
+        $settings = WebsiteSetting::forAdmin($employee->admin_id);
+        $startTimeStr = $employee->check_in_time ?: ($settings->office_starting_time ?? '09:00:00');
+        $endTimeStr = $employee->check_out_time ?: ($settings->office_closing_time ?? '17:00:00');
 
+        $scheduledCheckIn = Carbon::parse($date . ' ' . $startTimeStr);
+        $scheduledCheckOut = Carbon::parse($date . ' ' . $endTimeStr);
+
+        // Overnight shift: scheduled check-out time is earlier than scheduled check-in time
         if ($scheduledCheckOut->isBefore($scheduledCheckIn)) {
             $scheduledCheckOut->addDay();
         }
 
+        // Scheduled shift span in minutes
+        $scheduledShiftMinutes = (int) $scheduledCheckIn->diffInMinutes($scheduledCheckOut);
+
+        // Scheduled Working Duration:
+        // Excludes any configured unpaid breaks (configured working_hours <= scheduledShiftMinutes)
+        $configuredHours = (float) ($employee->working_hours > 0 ? $employee->working_hours : 8.0);
+        $configuredMinutes = (int) round($configuredHours * 60);
+
+        $scheduledWorkingMinutes = ($configuredMinutes > 0 && $configuredMinutes <= $scheduledShiftMinutes)
+            ? $configuredMinutes
+            : $scheduledShiftMinutes;
+
+        // 1. Late Arrival
         $lateMinutes = 0;
         if ($checkInAt->isAfter($scheduledCheckIn)) {
             $lateMinutes = (int) $scheduledCheckIn->diffInMinutes($checkInAt);
@@ -247,19 +326,34 @@ class AttendanceService
 
         $earlyLeaveMinutes = 0;
         $overtimeMinutes = 0;
+        $actualWorkedMinutes = 0;
 
         if ($checkOutAt) {
+            // Check if checkout timestamp needs next-day rollover:
+            // e.g. checkOutAt is before checkInAt
+            if ($checkOutAt->isBefore($checkInAt)) {
+                $checkOutAt = $checkOutAt->copy()->addDay();
+            }
+
+            // Total Working Duration = Check-Out Time - Check-In Time
+            $actualWorkedMinutes = (int) max(0, $checkInAt->diffInMinutes($checkOutAt));
+
+            // 2. Early Leave: Check-Out earlier than scheduled office end time
             if ($checkOutAt->isBefore($scheduledCheckOut)) {
                 $earlyLeaveMinutes = (int) $checkOutAt->diffInMinutes($scheduledCheckOut);
-            } elseif ($checkOutAt->isAfter($scheduledCheckOut)) {
-                $overtimeMinutes = (int) $scheduledCheckOut->diffInMinutes($checkOutAt);
             }
+
+            // 3. Overtime: max(0, Actual Working Duration - Scheduled Working Duration)
+            $overtimeMinutes = (int) max(0, $actualWorkedMinutes - $scheduledWorkingMinutes);
         }
 
         return [
             'late_minutes' => $lateMinutes,
             'early_leave_minutes' => $earlyLeaveMinutes,
             'overtime_minutes' => $overtimeMinutes,
+            'total_working_minutes' => $actualWorkedMinutes,
+            'scheduled_working_minutes' => $scheduledWorkingMinutes,
+            'adjusted_check_out_at' => $checkOutAt,
         ];
     }
 
@@ -273,6 +367,18 @@ class AttendanceService
             ->whereMonth('date', $month)
             ->get();
 
+        $totalWorkedMinutes = 0;
+        foreach ($records as $record) {
+            if ($record->check_in_at && $record->check_out_at) {
+                $cIn = Carbon::parse($record->check_in_at);
+                $cOut = Carbon::parse($record->check_out_at);
+                if ($cOut->isBefore($cIn)) {
+                    $cOut->addDay();
+                }
+                $totalWorkedMinutes += max(0, $cIn->diffInMinutes($cOut));
+            }
+        }
+
         return [
             'total_days' => $records->count(),
             'late_count' => $records->where('late_minutes', '>', 0)->count(),
@@ -281,6 +387,7 @@ class AttendanceService
             'early_leave_total_minutes' => (int) $records->sum('early_leave_minutes'),
             'overtime_count' => $records->where('overtime_minutes', '>', 0)->count(),
             'overtime_total_minutes' => (int) $records->sum('overtime_minutes'),
+            'total_worked_minutes' => $totalWorkedMinutes,
         ];
     }
 }

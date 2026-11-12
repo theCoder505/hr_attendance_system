@@ -47,7 +47,7 @@ class AttendanceController extends Controller
             'employee_id' => $employee->id,
             'date' => $date,
             'check_in_at' => $checkInAt,
-            'check_out_at' => $checkOutAt,
+            'check_out_at' => $metrics['adjusted_check_out_at'] ?? $checkOutAt,
             'late_minutes' => $metrics['late_minutes'],
             'early_leave_minutes' => $metrics['early_leave_minutes'],
             'overtime_minutes' => $metrics['overtime_minutes'],
@@ -84,7 +84,7 @@ class AttendanceController extends Controller
 
         $attendance->update([
             'check_in_at' => $checkInAt,
-            'check_out_at' => $checkOutAt,
+            'check_out_at' => $metrics['adjusted_check_out_at'] ?? $checkOutAt,
             'late_minutes' => $metrics['late_minutes'],
             'early_leave_minutes' => $metrics['early_leave_minutes'],
             'overtime_minutes' => $metrics['overtime_minutes'],

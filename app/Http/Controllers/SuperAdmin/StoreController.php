@@ -32,7 +32,8 @@ class StoreController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('store_id', 'like', "%{$search}%")
-                    ->orWhere('uid', 'like', "%{$search}%");
+                    ->orWhere('uid', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -48,6 +49,7 @@ class StoreController extends Controller
                 'store_id' => $store->store_id,
                 'name' => $store->name,
                 'email' => $store->email,
+                'phone' => $store->phone,
                 'max_outlets' => $store->max_outlets,
                 'max_employees_per_outlet' => (int) ($store->max_employees_per_outlet ?: 25),
                 'max_storage_mb' => $storageDetails['max_storage_mb'],
@@ -87,6 +89,7 @@ class StoreController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:admins,email'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'password' => ['required', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
             'max_employees_per_outlet' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -99,13 +102,14 @@ class StoreController extends Controller
 
         // Auto-generate unique Store ID strictly (Super Admin cannot set it)
         do {
-            $storeId = 'STR-' . strtoupper(Str::random(6));
+            $storeId = 'STR-'.strtoupper(Str::random(6));
         } while (Admin::where('store_id', $storeId)->exists());
 
         DB::transaction(function () use ($request, $storeId) {
             $admin = Admin::create([
                 'name' => trim($request->name),
                 'email' => trim($request->email),
+                'phone' => $request->filled('phone') ? trim($request->phone) : null,
                 'password' => Hash::make($request->password),
                 'store_id' => $storeId,
                 'max_outlets' => (int) $request->max_outlets,
@@ -141,7 +145,8 @@ class StoreController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:admins,email,' . $store->id],
+            'email' => ['required', 'email', 'max:255', 'unique:admins,email,'.$store->id],
+            'phone' => ['nullable', 'string', 'max:50'],
             'password' => ['nullable', 'string', 'min:8'],
             'max_outlets' => ['required', 'integer', 'min:1', 'max:500'],
             'max_employees_per_outlet' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -158,6 +163,7 @@ class StoreController extends Controller
         $data = [
             'name' => trim($request->name),
             'email' => trim($request->email),
+            'phone' => $request->filled('phone') ? trim($request->phone) : null,
             'max_outlets' => (int) $request->max_outlets,
             'max_employees_per_outlet' => (int) ($request->max_employees_per_outlet ?: 25),
             'max_storage_mb' => (int) ($request->max_storage_mb ?: 500),
@@ -309,4 +315,3 @@ class StoreController extends Controller
         return back()->with('success', "Employee '{$name}' was removed from {$store->name}.");
     }
 }
-

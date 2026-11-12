@@ -10,6 +10,7 @@ import {
     X,
     ArrowUpRight,
     Mail,
+    Phone,
     Eye,
     EyeOff,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface StoreItem {
     store_id: string;
     name: string;
     email: string;
+    phone?: string | null;
     max_outlets: number;
     max_employees_per_outlet?: number;
     max_storage_mb: number;
@@ -68,6 +70,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     const createForm = useForm({
         name: '',
         email: '',
+        phone: '',
         password: '',
         max_outlets: 5,
         max_employees_per_outlet: 25,
@@ -82,6 +85,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     const editForm = useForm<{
         name: string;
         email: string;
+        phone: string;
         password: string;
         max_outlets: number;
         max_employees_per_outlet: number;
@@ -93,6 +97,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     }>({
         name: '',
         email: '',
+        phone: '',
         password: '',
         max_outlets: 5,
         max_employees_per_outlet: 25,
@@ -115,6 +120,7 @@ export default function StoresIndex({ stores, filters }: Props) {
         editForm.setData({
             name: store.name,
             email: store.email,
+            phone: store.phone || '',
             password: '',
             max_outlets: store.max_outlets,
             max_employees_per_outlet: store.max_employees_per_outlet || 25,
@@ -178,7 +184,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     };
 
     return (
-        <SuperAdminLayout title="Stores & Admins">
+        <SuperAdminLayout title="Stores">
             <Head title="Stores Management - Super Admin" />
 
             {/* Page Header */}
@@ -305,9 +311,27 @@ export default function StoresIndex({ stores, filters }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
-                                    <Mail className="h-3.5 w-3.5 text-slate-400" />
-                                    <span className="truncate">{store.email}</span>
+                                <div className="space-y-1">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
+                                        <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                        <span className="truncate">{store.email}</span>
+                                    </div>
+                                    {store.phone ? (
+                                        <div className="text-xs text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                                            <Phone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                            <a href={`tel:${store.phone}`} className="hover:underline hover:text-purple-600 dark:hover:text-purple-400 transition-colors font-mono">
+                                                {store.phone}
+                                            </a>
+                                            <span className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-200 dark:border-purple-800/60">
+                                                Admin Note
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                                            <Phone className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600 shrink-0" />
+                                            <span className="text-[11px]">No phone added</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Quotas and Usage Badges */}
@@ -452,6 +476,29 @@ export default function StoresIndex({ stores, filters }: Props) {
                                     </div>
                                     {createForm.errors.password && <p className="text-xs text-rose-500">{createForm.errors.password}</p>}
                                 </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                        <Phone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                                        <span>Store Owner Phone Number</span>
+                                    </label>
+                                    <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/60">
+                                        Super Admin Only
+                                    </span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={createForm.data.phone}
+                                    onChange={(e) => createForm.setData('phone', e.target.value)}
+                                    placeholder="e.g. +880 1700-000000"
+                                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 font-mono"
+                                />
+                                <p className="text-[10px] text-slate-400">
+                                    Internal private contact for Super Admin use only. The store owner will never see this number.
+                                </p>
+                                {createForm.errors.phone && <p className="text-xs text-rose-500">{createForm.errors.phone}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -652,6 +699,29 @@ export default function StoresIndex({ stores, filters }: Props) {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                        <Phone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                                        <span>Store Owner Phone Number</span>
+                                    </label>
+                                    <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/60">
+                                        Super Admin Only
+                                    </span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={editForm.data.phone}
+                                    onChange={(e) => editForm.setData('phone', e.target.value)}
+                                    placeholder="e.g. +880 1700-000000"
+                                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 font-mono"
+                                />
+                                <p className="text-[10px] text-slate-400">
+                                    Internal private contact for Super Admin use only. The store owner will never see this number.
+                                </p>
+                                {editForm.errors.phone && <p className="text-xs text-rose-500">{editForm.errors.phone}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

@@ -1,5 +1,5 @@
 import { showConfirm, showError, showSuccess } from '@/lib/swal';
-import { formatMinutes, formatMinutesToHoursDot } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot, formatMinutesToHHMM } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
 import { CheckCircle2, LogIn, LogOut, RefreshCw, ShieldAlert, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -552,22 +552,27 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                 </span>
                                                 .
                                                 {(activeAttendance?.late_minutes ?? 0) > 0 && (
-                                                    <span className="ml-1.5 text-amber-600 dark:text-amber-400">
-                                                        ({formatMinutes(activeAttendance?.late_minutes)} late)
+                                                    <span className="ml-1.5 text-amber-600 dark:text-amber-400 font-mono">
+                                                        ({formatMinutesToHHMM(activeAttendance?.late_minutes)} late)
                                                     </span>
                                                 )}
                                                 {activeAttendance?.check_in_at && (() => {
                                                     const checkInMs = new Date(activeAttendance.check_in_at).getTime();
                                                     const nowMs = currentTime.getTime();
-                                                    const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                    let diffMs = nowMs - checkInMs;
+                                                    if (diffMs < 0) {
+                                                        diffMs += 24 * 60 * 60 * 1000;
+                                                    }
+                                                    const currentMins = Math.max(0, Math.round(diffMs / 60000));
                                                     const targetHours = Number(employee.working_hours || 8);
+                                                    const targetMins = Math.round(targetHours * 60);
                                                     return (
                                                         <span className="ml-1.5 inline-flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
                                                             &bull; Work Hours:{' '}
                                                             <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                                                                {formatMinutesToHoursDot(currentMins)}
+                                                                {formatMinutesToHHMM(currentMins)}
                                                             </span>
-                                                            <span className="text-slate-400 font-medium">/{targetHours}h</span>
+                                                            <span className="text-slate-400 font-medium font-mono">/{formatMinutesToHHMM(targetMins)}</span>
                                                         </span>
                                                     );
                                                 })()}
@@ -761,33 +766,42 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                     <td className="py-3">
                                                         <div className="min-w-30 text-center">
                                                             {rec.late_minutes > 0 ? (
-                                                                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                                                    +{formatMinutes(rec.late_minutes)}
+                                                                <span
+                                                                    className="font-mono font-semibold text-amber-600 dark:text-amber-400"
+                                                                    title={`Late: ${formatMinutes(rec.late_minutes)}`}
+                                                                >
+                                                                    +{formatMinutesToHHMM(rec.late_minutes)}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                                <span className="font-mono text-slate-400 dark:text-slate-500">00:00</span>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td className="py-3">
                                                         <div className="min-w-30 text-center">
                                                             {rec.early_leave_minutes > 0 ? (
-                                                                <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                                                    -{formatMinutes(rec.early_leave_minutes)}
+                                                                <span
+                                                                    className="font-mono font-semibold text-orange-600 dark:text-orange-400"
+                                                                    title={`Early leave: ${formatMinutes(rec.early_leave_minutes)}`}
+                                                                >
+                                                                    -{formatMinutesToHHMM(rec.early_leave_minutes)}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                                <span className="font-mono text-slate-400 dark:text-slate-500">00:00</span>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td className="py-3">
                                                         <div className="min-w-30 text-center">
                                                             {rec.overtime_minutes > 0 ? (
-                                                                <span className="font-semibold text-violet-600 dark:text-violet-400">
-                                                                    +{formatMinutes(rec.overtime_minutes)}
+                                                                <span
+                                                                    className="font-mono font-semibold text-violet-600 dark:text-violet-400"
+                                                                    title={`Overtime: ${formatMinutes(rec.overtime_minutes)}`}
+                                                                >
+                                                                    +{formatMinutesToHHMM(rec.overtime_minutes)}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                                <span className="font-mono text-slate-400 dark:text-slate-500">00:00</span>
                                                             )}
                                                         </div>
                                                     </td>
@@ -797,15 +811,20 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                                 (() => {
                                                                     const checkInMs = new Date(rec.check_in_at).getTime();
                                                                     const checkOutMs = new Date(rec.check_out_at).getTime();
-                                                                    const workedMins = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+                                                                    let diffMs = checkOutMs - checkInMs;
+                                                                    if (diffMs < 0) {
+                                                                        diffMs += 24 * 60 * 60 * 1000;
+                                                                    }
+                                                                    const workedMins = Math.max(0, Math.round(diffMs / 60000));
                                                                     const targetHours = Number(employee?.working_hours || 8);
-                                                                    const isTargetMet = workedMins >= targetHours * 60;
+                                                                    const targetMins = Math.round(targetHours * 60);
+                                                                    const isTargetMet = workedMins >= targetMins;
                                                                     return (
-                                                                        <div>
+                                                                        <div title={`Total worked: ${formatMinutes(workedMins)} / Target: ${formatMinutes(targetMins)}`}>
                                                                             <span className={`font-mono font-bold text-xs ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                                                                                {formatMinutesToHoursDot(workedMins)}
+                                                                                {formatMinutesToHHMM(workedMins)}
                                                                             </span>
-                                                                            <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                            <span className="font-mono text-slate-400 text-xs font-medium">/{formatMinutesToHHMM(targetMins)}</span>
                                                                         </div>
                                                                     );
                                                                 })()
@@ -813,14 +832,19 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                                 (() => {
                                                                     const checkInMs = new Date(rec.check_in_at).getTime();
                                                                     const nowMs = currentTime.getTime();
-                                                                    const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                                    let diffMs = nowMs - checkInMs;
+                                                                    if (diffMs < 0) {
+                                                                        diffMs += 24 * 60 * 60 * 1000;
+                                                                    }
+                                                                    const currentMins = Math.max(0, Math.round(diffMs / 60000));
                                                                     const targetHours = Number(employee?.working_hours || 8);
+                                                                    const targetMins = Math.round(targetHours * 60);
                                                                     return (
                                                                         <div title="Currently in progress">
                                                                             <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                                                                {formatMinutesToHoursDot(currentMins)}
+                                                                                {formatMinutesToHHMM(currentMins)}
                                                                             </span>
-                                                                            <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                            <span className="font-mono text-slate-400 text-xs font-medium">/{formatMinutesToHHMM(targetMins)}</span>
                                                                         </div>
                                                                     );
                                                                 })()

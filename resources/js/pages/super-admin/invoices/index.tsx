@@ -15,6 +15,7 @@ import {
     X,
     Building2,
     Smartphone,
+    Phone,
 } from 'lucide-react';
 import { showConfirm, showSuccess, showError, showToast } from '@/lib/swal';
 import { formatHumanDueDate } from '@/lib/utils';
@@ -40,6 +41,7 @@ interface InvoiceItem {
         name: string;
         store_id: string;
         email: string;
+        phone?: string | null;
     };
     verifier?: {
         id: number;
@@ -306,6 +308,21 @@ export default function SuperAdminInvoices({ invoices, filters, counts }: Props)
                                                     </span>
                                                     <span>&bull; {inv.admin?.email}</span>
                                                 </div>
+                                                {inv.admin?.phone && (
+                                                    <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                                                        <Phone className="h-3 w-3 text-purple-600 dark:text-purple-400 shrink-0" />
+                                                        <a
+                                                            href={`tel:${inv.admin.phone}`}
+                                                            className="hover:underline hover:text-purple-600 dark:hover:text-purple-400 font-mono"
+                                                            title="Call store owner"
+                                                        >
+                                                            {inv.admin.phone}
+                                                        </a>
+                                                        <span className="text-[9px] text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-200 dark:border-purple-800/60">
+                                                            Owner
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </td>
 
                                             {/* Amount & Due Date */}
@@ -476,7 +493,15 @@ export default function SuperAdminInvoices({ invoices, filters, counts }: Props)
                         </div>
 
                         <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
-                            <p><strong>Store:</strong> {selectedInvoice.admin?.name}</p>
+                            <p className="flex items-center gap-1.5 flex-wrap">
+                                <strong>Store:</strong> {selectedInvoice.admin?.name}
+                                {selectedInvoice.admin?.phone && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-mono text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-200 dark:border-purple-800/60">
+                                        <Phone className="h-2.5 w-2.5" />
+                                        {selectedInvoice.admin.phone}
+                                    </span>
+                                )}
+                            </p>
                             <p><strong>Method & TrxID:</strong> {selectedInvoice.payment_method?.toUpperCase()} &bull; <span className="font-mono">{selectedInvoice.transaction_id}</span></p>
                             <p><strong>Invoice Due Amount:</strong> ৳ {selectedInvoice.amount}</p>
                             {selectedInvoice.paid_amount && (

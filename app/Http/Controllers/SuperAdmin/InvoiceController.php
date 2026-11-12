@@ -24,7 +24,7 @@ class InvoiceController extends Controller
         $status = $request->query('status', 'all');
         $search = $request->query('search');
 
-        $query = StoreInvoice::with(['admin:id,name,store_id,email', 'verifier:id,name'])
+        $query = StoreInvoice::with(['admin:id,name,store_id,email,phone', 'verifier:id,name'])
             ->orderByRaw("CASE WHEN status = 'pending_verification' THEN 1 WHEN status = 'unpaid' THEN 2 WHEN status = 'rejected' THEN 3 ELSE 4 END")
             ->orderBy('due_date', 'desc')
             ->orderBy('id', 'desc');
@@ -40,12 +40,21 @@ class InvoiceController extends Controller
                     ->orWhereHas('admin', function ($storeQ) use ($search) {
                         $storeQ->where('name', 'like', "%{$search}%")
                             ->orWhere('store_id', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
                     });
             });
         }
 
         $invoices = $query->paginate(15)->withQueryString();
+
+        $invoices->through(function ($invoice) {
+            if ($invoice->admin) {
+                $invoice->admin->makeVisible(['phone']);
+            }
+
+            return $invoice;
+        });
 
         $counts = [
             'all' => StoreInvoice::count(),

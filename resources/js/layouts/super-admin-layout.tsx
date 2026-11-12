@@ -91,7 +91,7 @@ export default function SuperAdminLayout({ title, children }: Props) {
             active: currentRoute === '/super-admin' || currentRoute === '/super-admin/' || currentRoute.includes('/super-admin/dashboard'),
         },
         {
-            label: 'Stores & Admins',
+            label: 'Stores',
             href: '/super-admin/stores',
             icon: Store,
             active: currentRoute.includes('/super-admin/stores'),

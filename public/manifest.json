@@ -10,21 +10,21 @@
     "theme_color": "#4f46e5",
     "icons": [
         {
-            "src": "http://127.0.0.1:8000/storage/settings/gIdbNuJo2jZALFJHWKiTNHQhuYaroQ6lBEClFCNX.png",
+            "src": "http://127.0.0.1:8000/favicon.ico",
             "sizes": "192x192",
-            "type": "image/png",
+            "type": "image/x-icon",
             "purpose": "any maskable"
         },
         {
-            "src": "http://127.0.0.1:8000/storage/settings/gIdbNuJo2jZALFJHWKiTNHQhuYaroQ6lBEClFCNX.png",
+            "src": "http://127.0.0.1:8000/favicon.ico",
             "sizes": "512x512",
-            "type": "image/png",
+            "type": "image/x-icon",
             "purpose": "any maskable"
         },
         {
-            "src": "http://127.0.0.1:8000/storage/settings/gIdbNuJo2jZALFJHWKiTNHQhuYaroQ6lBEClFCNX.png",
+            "src": "http://127.0.0.1:8000/favicon.ico",
             "sizes": "any",
-            "type": "image/png",
+            "type": "image/x-icon",
             "purpose": "any maskable"
         }
     ]

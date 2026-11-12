@@ -71,6 +71,9 @@ class ReportController extends Controller
                 if ($record->check_in_at && $record->check_out_at) {
                     $checkIn = Carbon::parse($record->check_in_at);
                     $checkOut = Carbon::parse($record->check_out_at);
+                    if ($checkOut->isBefore($checkIn)) {
+                        $checkOut = $checkOut->addDay();
+                    }
                     $actualWorkedMinutes += max(0, $checkIn->diffInMinutes($checkOut));
                 }
             }

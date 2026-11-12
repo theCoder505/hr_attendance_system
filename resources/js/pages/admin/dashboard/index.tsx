@@ -1,7 +1,7 @@
 import AdminLayout from '@/layouts/admin-layout';
 import StoragePieChart, { StorageDetails } from '@/components/storage-pie-chart';
 import { showConfirm, showError } from '@/lib/swal';
-import { formatMinutes, formatMinutesToHoursDot, getTodayDateString } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot, formatMinutesToHHMM, getTodayDateString } from '@/lib/utils';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
@@ -633,25 +633,31 @@ export default function AdminDashboard({
                                 <thead>
                                     <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 font-bold tracking-wider text-slate-500 uppercase text-[10px]">
                                         <th className="py-3 pl-3">
-                                            <div className="min-w-50 text-left">Employee</div>
+                                            <div className="min-w-44 text-left">Employee</div>
                                         </th>
                                         <th className="py-3">
-                                            <div className="min-w-25 text-center">Check In</div>
+                                            <div className="min-w-24 text-center">Check In</div>
                                         </th>
                                         <th className="py-3">
-                                            <div className="min-w-25 text-center">Check Out</div>
+                                            <div className="min-w-24 text-center">Check Out</div>
                                         </th>
                                         <th className="py-3">
-                                            <div className="min-w-25 text-center">Work Hours</div>
+                                            <div className="min-w-28 text-center">Work Duration</div>
                                         </th>
                                         <th className="py-3">
-                                            <div className="min-w-25 text-center">Status</div>
+                                            <div className="min-w-24 text-center">Late Arrival</div>
                                         </th>
                                         <th className="py-3">
-                                            <div className="min-w-25 text-center">Type</div>
+                                            <div className="min-w-24 text-center">Early Leave</div>
+                                        </th>
+                                        <th className="py-3">
+                                            <div className="min-w-24 text-center">Overtime</div>
+                                        </th>
+                                        <th className="py-3">
+                                            <div className="min-w-20 text-center">Type</div>
                                         </th>
                                         <th className="pr-3 py-3 text-right">
-                                            <div className="min-w-25 text-right">Actions</div>
+                                            <div className="min-w-20 text-right">Actions</div>
                                         </th>
                                     </tr>
                                 </thead>
@@ -659,7 +665,7 @@ export default function AdminDashboard({
                                     {attendances.map((item) => (
                                         <tr key={item.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                                             <td className="py-3 pl-3">
-                                                <div className="min-w-50">
+                                                <div className="min-w-44">
                                                     <div className="flex items-center gap-2.5">
                                                         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-xs font-bold text-white shadow-sm">
                                                             {item.employee?.image ? (
@@ -689,11 +695,11 @@ export default function AdminDashboard({
                                             </td>
 
                                             <td className="py-3 font-mono font-bold text-slate-700 dark:text-slate-300">
-                                                <div className="min-w-25 text-center">{formatTime(item.check_in_at)}</div>
+                                                <div className="min-w-24 text-center">{formatTime(item.check_in_at)}</div>
                                             </td>
 
                                             <td className="py-3 font-mono font-bold text-slate-700 dark:text-slate-300">
-                                                <div className="min-w-25 text-center">
+                                                <div className="min-w-24 text-center">
                                                     {item.check_out_at ? (
                                                         formatTime(item.check_out_at)
                                                     ) : (
@@ -705,20 +711,25 @@ export default function AdminDashboard({
                                             </td>
 
                                             <td className="py-3">
-                                                <div className="min-w-25 text-center">
+                                                <div className="min-w-28 text-center">
                                                     {item.check_in_at && item.check_out_at ? (
                                                         (() => {
                                                             const checkInMs = new Date(item.check_in_at).getTime();
                                                             const checkOutMs = new Date(item.check_out_at).getTime();
-                                                            const workedMins = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+                                                            let diffMs = checkOutMs - checkInMs;
+                                                            if (diffMs < 0) {
+                                                                diffMs += 24 * 60 * 60 * 1000;
+                                                            }
+                                                            const workedMins = Math.max(0, Math.round(diffMs / 60000));
                                                             const targetHours = Number(item.employee?.working_hours || 8);
-                                                            const isTargetMet = workedMins >= targetHours * 60;
+                                                            const targetMins = Math.round(targetHours * 60);
+                                                            const isTargetMet = workedMins >= targetMins;
                                                             return (
-                                                                <div>
+                                                                <div title={`Total: ${formatMinutes(workedMins)} (Target: ${formatMinutes(targetMins)})`}>
                                                                     <span className={`font-mono font-bold text-xs ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                                                                        {formatMinutesToHoursDot(workedMins)}
+                                                                        {formatMinutesToHHMM(workedMins)}
                                                                     </span>
-                                                                    <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                    <span className="font-mono text-slate-400 text-xs font-medium">/{formatMinutesToHHMM(targetMins)}</span>
                                                                 </div>
                                                             );
                                                         })()
@@ -726,14 +737,19 @@ export default function AdminDashboard({
                                                         (() => {
                                                             const checkInMs = new Date(item.check_in_at).getTime();
                                                             const nowMs = Date.now();
-                                                            const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                            let diffMs = nowMs - checkInMs;
+                                                            if (diffMs < 0) {
+                                                                diffMs += 24 * 60 * 60 * 1000;
+                                                            }
+                                                            const currentMins = Math.max(0, Math.round(diffMs / 60000));
                                                             const targetHours = Number(item.employee?.working_hours || 8);
+                                                            const targetMins = Math.round(targetHours * 60);
                                                             return (
                                                                 <div title="Currently in progress">
                                                                     <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                                                        {formatMinutesToHoursDot(currentMins)}
+                                                                        {formatMinutesToHHMM(currentMins)}
                                                                     </span>
-                                                                    <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                    <span className="font-mono text-slate-400 text-xs font-medium">/{formatMinutesToHHMM(targetMins)}</span>
                                                                 </div>
                                                             );
                                                         })()
@@ -744,34 +760,52 @@ export default function AdminDashboard({
                                             </td>
 
                                             <td className="py-3">
-                                                <div className="min-w-25 text-center">
-                                                    <div className="flex flex-wrap justify-center gap-1">
-                                                        {item.late_minutes > 0 && (
-                                                            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                                                                Late {formatMinutes(item.late_minutes)}
-                                                            </span>
-                                                        )}
-                                                        {item.early_leave_minutes > 0 && (
-                                                            <span className="rounded-md bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-800 dark:bg-orange-950/80 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
-                                                                Early {formatMinutes(item.early_leave_minutes)}
-                                                            </span>
-                                                        )}
-                                                        {item.overtime_minutes > 0 && (
-                                                            <span className="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800 dark:bg-violet-950/80 dark:text-violet-300 border border-violet-300 dark:border-violet-700">
-                                                                OT {formatMinutes(item.overtime_minutes)}
-                                                            </span>
-                                                        )}
-                                                        {item.late_minutes === 0 && item.early_leave_minutes === 0 && item.overtime_minutes === 0 && (
-                                                            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                                                                On Time
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                <div className="min-w-24 text-center">
+                                                    {item.late_minutes > 0 ? (
+                                                        <span
+                                                            className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 font-mono text-xs font-bold text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60"
+                                                            title={`Late arrival: ${formatMinutes(item.late_minutes)}`}
+                                                        >
+                                                            +{formatMinutesToHHMM(item.late_minutes)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-xs text-slate-400 dark:text-slate-500">00:00</span>
+                                                    )}
                                                 </div>
                                             </td>
 
                                             <td className="py-3">
-                                                <div className="min-w-25 text-center">
+                                                <div className="min-w-24 text-center">
+                                                    {item.early_leave_minutes > 0 ? (
+                                                        <span
+                                                            className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 font-mono text-xs font-bold text-orange-700 border border-orange-200 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800/60"
+                                                            title={`Early leave: ${formatMinutes(item.early_leave_minutes)}`}
+                                                        >
+                                                            -{formatMinutesToHHMM(item.early_leave_minutes)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-xs text-slate-400 dark:text-slate-500">00:00</span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3">
+                                                <div className="min-w-24 text-center">
+                                                    {item.overtime_minutes > 0 ? (
+                                                        <span
+                                                            className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 font-mono text-xs font-bold text-violet-700 border border-violet-200 dark:bg-violet-950/60 dark:text-violet-300 dark:border-violet-800/60"
+                                                            title={`Overtime: ${formatMinutes(item.overtime_minutes)}`}
+                                                        >
+                                                            +{formatMinutesToHHMM(item.overtime_minutes)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-xs text-slate-400 dark:text-slate-500">00:00</span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3">
+                                                <div className="min-w-20 text-center">
                                                     {item.is_manual ? (
                                                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                                                             Manual

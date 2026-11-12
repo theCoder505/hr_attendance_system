@@ -43,11 +43,14 @@ class ContactController extends Controller
      */
     public function sendOtp(Request $request): JsonResponse
     {
+        $rawEmail = $request->input('email', '');
+        $email = trim(strtolower((string) $rawEmail));
+        $request->merge(['email' => $email]);
+
         $request->validate([
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        $email = trim(strtolower($request->email));
         $otp = (string) random_int(100000, 999999);
 
         session([
@@ -56,15 +59,35 @@ class ContactController extends Controller
             'contact_otp_expires_at' => now()->addMinutes(10),
         ]);
 
+        $mailSent = false;
+        $mailError = null;
+
         try {
             Mail::to($email)->send(new ContactOtpMail($otp));
+            $mailSent = true;
         } catch (\Throwable $e) {
-            Log::error('Failed to send contact OTP mail: ' . $e->getMessage());
+            $mailError = $e->getMessage();
+            Log::error("Failed to send contact OTP mail to {$email}: " . $mailError);
         }
+
+        $mailer = config('mail.default', 'log');
+        $isLocalOrLog = $mailer === 'log' || app()->environment('local', 'testing');
+
+        if (! $mailSent && ! $isLocalOrLog) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to dispatch verification email to ' . $email . '. Please check your mail server configuration: ' . $mailError,
+            ], 500);
+        }
+
+        $message = ($isLocalOrLog && $mailer === 'log')
+            ? "A 6-digit OTP has been dispatched to {$email}. [Dev Code: {$otp}] (Mail driver is set to 'log' in .env)."
+            : "A 6-digit verification code has been sent to {$email}. Please check your inbox or spam folder.";
 
         return response()->json([
             'success' => true,
-            'message' => "A 6-digit OTP has been sent to {$email}. Please verify within 10 minutes.",
+            'message' => $message,
+            'otp' => ($isLocalOrLog && $mailer === 'log') ? $otp : null,
         ]);
     }
 
@@ -73,12 +96,15 @@ class ContactController extends Controller
      */
     public function verifyOtp(Request $request): JsonResponse
     {
+        $rawEmail = $request->input('email', '');
+        $email = trim(strtolower((string) $rawEmail));
+        $request->merge(['email' => $email]);
+
         $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'otp' => ['required', 'string', 'size:6'],
         ]);
 
-        $email = trim(strtolower($request->email));
         $savedOtp = session('contact_otp');
         $savedEmail = session('contact_otp_email');
         $expiresAt = session('contact_otp_expires_at');
@@ -90,7 +116,7 @@ class ContactController extends Controller
             ], 422);
         }
 
-        if ($savedEmail !== $email || ! hash_equals((string) $savedOtp, trim($request->otp))) {
+        if ($savedEmail !== $email || ! hash_equals((string) $savedOtp, trim((string) $request->otp))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid OTP code. Please check and try again.',
@@ -115,6 +141,10 @@ class ContactController extends Controller
      */
     public function submit(Request $request): JsonResponse
     {
+        $rawEmail = $request->input('email', '');
+        $email = trim(strtolower((string) $rawEmail));
+        $request->merge(['email' => $email]);
+
         $request->validate([
             'company_name' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
@@ -125,7 +155,6 @@ class ContactController extends Controller
             'message' => ['required', 'string', 'min:10', 'max:5000'],
         ]);
 
-        $email = trim(strtolower($request->email));
         $isVerified = session('contact_email_verified') && session('contact_verified_email') === $email;
 
         if (! $isVerified) {

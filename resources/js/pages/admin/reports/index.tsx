@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/layouts/admin-layout';
-import { formatMinutes, formatMinutesToHoursDot } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot, formatMinutesToHHMM } from '@/lib/utils';
 import {
     FileSpreadsheet,
     Download,
@@ -309,9 +309,9 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                             <div className="min-w-40 text-center">
                                                 <div>
                                                     <span className={`font-mono font-bold text-sm ${emp.actual_worked_minutes >= emp.scheduled_worked_minutes ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                                                        {formatMinutesToHoursDot(emp.actual_worked_minutes)}
+                                                        {formatMinutesToHHMM(emp.actual_worked_minutes)}
                                                     </span>
-                                                    <span className="text-slate-400 text-sm font-medium">/{formatMinutesToHoursDot(emp.scheduled_worked_minutes)}</span>
+                                                    <span className="text-slate-400 text-sm font-medium font-mono">/{formatMinutesToHHMM(emp.scheduled_worked_minutes)}</span>
                                                     <p className="text-[11px] text-slate-400 mt-0.5 font-sans">
                                                         {emp.scheduled_work_days} work days ({emp.working_hours_per_day}h/day)
                                                     </p>
@@ -326,8 +326,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                                         <span className="font-semibold text-amber-600 dark:text-amber-400">
                                                             {emp.late_count} time{emp.late_count > 1 ? 's' : ''}
                                                         </span>
-                                                        <p className="text-[11px] text-slate-400">
-                                                            Total: {formatMinutes(emp.late_total_minutes)}
+                                                        <p className="text-[11px] text-slate-400 font-mono">
+                                                            Total: {formatMinutesToHHMM(emp.late_total_minutes)}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -343,8 +343,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                                         <span className="font-semibold text-orange-600 dark:text-orange-400">
                                                             {emp.early_leave_count} time{emp.early_leave_count > 1 ? 's' : ''}
                                                         </span>
-                                                        <p className="text-[11px] text-slate-400">
-                                                            Total: {formatMinutes(emp.early_leave_total_minutes)}
+                                                        <p className="text-[11px] text-slate-400 font-mono">
+                                                            Total: {formatMinutesToHHMM(emp.early_leave_total_minutes)}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -360,8 +360,8 @@ export default function ReportsIndex({ reports, outlets = [], activeOutletId = '
                                                         <span className="font-semibold text-violet-600 dark:text-violet-400">
                                                             {emp.overtime_count} time{emp.overtime_count > 1 ? 's' : ''}
                                                         </span>
-                                                        <p className="text-[11px] text-slate-400">
-                                                            Total: {formatMinutes(emp.overtime_total_minutes)}
+                                                        <p className="text-[11px] text-slate-400 font-mono">
+                                                            Total: {formatMinutesToHHMM(emp.overtime_total_minutes)}
                                                         </p>
                                                     </div>
                                                 ) : (

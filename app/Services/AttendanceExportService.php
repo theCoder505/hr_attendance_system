@@ -137,6 +137,9 @@ class AttendanceExportService
                 if ($r->check_in_at && $r->check_out_at) {
                     $cIn = Carbon::parse($r->check_in_at);
                     $cOut = Carbon::parse($r->check_out_at);
+                    if ($cOut->isBefore($cIn)) {
+                        $cOut = $cOut->addDay();
+                    }
                     $actualMins += max(0, $cIn->diffInMinutes($cOut));
                 }
             }
@@ -239,12 +242,15 @@ class AttendanceExportService
             if ($item->check_in_at && $item->check_out_at) {
                 $cIn = Carbon::parse($item->check_in_at);
                 $cOut = Carbon::parse($item->check_out_at);
+                if ($cOut->isBefore($cIn)) {
+                    $cOut = $cOut->addDay();
+                }
                 $workedMins = max(0, $cIn->diffInMinutes($cOut));
                 $h = floor($workedMins / 60);
                 $m = $workedMins % 60;
                 $target = (float) ($item->employee?->working_hours ?? 8);
                 $targetFormatted = (fmod($target, 1.0) == 0.0) ? (int) $target : $target;
-                $workHoursText = sprintf('%d.%02d/%s', $h, $m, $targetFormatted);
+                $workHoursText = sprintf('%02d:%02d/%s', $h, $m, $targetFormatted);
             } elseif ($item->check_in_at) {
                 $cIn = Carbon::parse($item->check_in_at);
                 $currentMins = max(0, Carbon::now()->diffInMinutes($cIn));

@@ -32,6 +32,7 @@ class Admin extends Authenticatable
         'store_id',
         'name',
         'email',
+        'phone',
         'password',
         'max_outlets',
         'max_storage_mb',
@@ -53,6 +54,7 @@ class Admin extends Authenticatable
         'password',
         'remember_token',
         'otp',
+        'phone',
     ];
 
     /**

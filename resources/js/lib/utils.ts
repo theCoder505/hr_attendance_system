@@ -9,10 +9,6 @@ export function cn(...inputs: ClassValue[]) {
  * Format minutes into a human-readable duration string.
  * Example: 278 -> "4h 38m", 60 -> "1h", 25 -> "25m", 0 -> "0m"
  */
-/**
- * Format minutes into a human-readable duration string.
- * Example: 278 -> "4h 38m", 60 -> "1h", 25 -> "25m", 0 -> "0m"
- */
 export function formatMinutes(minutes: number | string | null | undefined): string {
     const mins = Math.max(0, Math.round(Number(minutes) || 0));
     if (mins === 0) return '0m';
@@ -25,6 +21,17 @@ export function formatMinutes(minutes: number | string | null | undefined): stri
         return `${h}h`;
     }
     return `${m}m`;
+}
+
+/**
+ * Format minutes into a standard HH:MM duration string (e.g. 90 -> "01:30", 480 -> "08:00", 0 -> "00:00").
+ * Safely guards against negative numbers or undefined/null.
+ */
+export function formatMinutesToHHMM(totalMinutes: number | string | null | undefined): string {
+    const mins = Math.max(0, Math.round(Number(totalMinutes) || 0));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 /**

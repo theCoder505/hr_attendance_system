@@ -135,11 +135,13 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
 
     // Send OTP to email
     const handleSendOtp = async () => {
-        if (!email || !email.includes('@')) {
+        const cleanEmail = email.trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@')) {
             showError('Invalid Email', 'Please enter a valid email address first.');
             return;
         }
 
+        setEmail(cleanEmail);
         setOtpLoading(true);
         try {
             const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
@@ -150,19 +152,23 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
                     Accept: 'application/json',
                     ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken, 'X-XSRF-TOKEN': csrfToken } : {}),
                 },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: cleanEmail }),
             });
 
             const data = await res.json();
             if (res.ok && data.success) {
                 setOtpSent(true);
                 setResendCountdown(60);
+                if (data.otp) {
+                    setOtpCode(data.otp);
+                }
                 showSuccess('OTP Sent!', data.message);
             } else {
-                showError('Could not send OTP', data.message || 'Error occurred.');
+                const errMsg = data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Error occurred while sending OTP.');
+                showError('Could not send OTP', errMsg);
             }
         } catch (e: any) {
-            showError('Error', 'Unable to reach server to dispatch OTP.');
+            showError('Error', 'Unable to reach server to dispatch OTP. Please check your internet connection.');
         } finally {
             setOtpLoading(false);
         }
@@ -170,7 +176,9 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
 
     // Verify OTP
     const handleVerifyOtp = async () => {
-        if (!otpCode || otpCode.length !== 6) {
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanOtp = otpCode.trim();
+        if (!cleanOtp || cleanOtp.length !== 6) {
             showError('Invalid Code', 'Please enter the complete 6-digit OTP code.');
             return;
         }
@@ -185,7 +193,7 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
                     Accept: 'application/json',
                     ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken, 'X-XSRF-TOKEN': csrfToken } : {}),
                 },
-                body: JSON.stringify({ email, otp: otpCode }),
+                body: JSON.stringify({ email: cleanEmail, otp: cleanOtp }),
             });
 
             const data = await res.json();
@@ -464,6 +472,9 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
                                             placeholder="owner@yourcompany.com"
                                             className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-75"
                                         />
+                                        <p className="text-[11px] text-slate-400">
+                                            Enter your store administrator email to receive a 6-digit verification code.
+                                        </p>
                                     </div>
                                     <div>
                                         {!isEmailVerified ? (
@@ -663,7 +674,7 @@ export default function ContactPage({ brandname, logo, verifiedEmail, contactSet
                                             value={userCaptcha}
                                             onChange={(e) => setUserCaptcha(e.target.value)}
                                             placeholder="Type code"
-                                            className="w-full px-3.5 py-2 font-mono uppercase tracking-wider text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                            className="w-full px-3.5 py-2 font-mono tracking-wider text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
                                         />
                                         {isCaptchaValid === true && (
                                             <CheckCircle2 className="absolute right-3 top-2.5 h-4 w-4 text-emerald-500" />
