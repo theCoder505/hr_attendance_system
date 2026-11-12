@@ -58,6 +58,21 @@ interface Props {
     };
 }
 
+interface StoreFormData {
+    [key: string]: any;
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    max_outlets: number;
+    max_employees_per_outlet: number;
+    max_storage_mb: number;
+    is_lifetime_free: boolean;
+    monthly_fee: number;
+    session_time: number;
+    two_factor_enabled: boolean;
+}
+
 export default function StoresIndex({ stores, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -67,7 +82,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     const [showEditPassword, setShowEditPassword] = useState(false);
 
     // Create Form
-    const createForm = useForm({
+    const createForm = useForm<StoreFormData>({
         name: '',
         email: '',
         phone: '',
@@ -82,19 +97,7 @@ export default function StoresIndex({ stores, filters }: Props) {
     });
 
     // Edit Form
-    const editForm = useForm<{
-        name: string;
-        email: string;
-        phone: string;
-        password: string;
-        max_outlets: number;
-        max_employees_per_outlet: number;
-        max_storage_mb: number;
-        is_lifetime_free: boolean;
-        monthly_fee: number;
-        session_time: number;
-        two_factor_enabled: boolean;
-    }>({
+    const editForm = useForm<StoreFormData>({
         name: '',
         email: '',
         phone: '',
