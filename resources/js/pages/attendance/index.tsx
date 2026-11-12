@@ -1,5 +1,5 @@
 import { showConfirm, showError, showSuccess } from '@/lib/swal';
-import { formatMinutes } from '@/lib/utils';
+import { formatMinutes, formatMinutesToHoursDot } from '@/lib/utils';
 import { Head, router } from '@inertiajs/react';
 import { CheckCircle2, LogIn, LogOut, RefreshCw, ShieldAlert, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -556,6 +556,21 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                         ({formatMinutes(activeAttendance?.late_minutes)} late)
                                                     </span>
                                                 )}
+                                                {activeAttendance?.check_in_at && (() => {
+                                                    const checkInMs = new Date(activeAttendance.check_in_at).getTime();
+                                                    const nowMs = currentTime.getTime();
+                                                    const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                    const targetHours = Number(employee.working_hours || 8);
+                                                    return (
+                                                        <span className="ml-1.5 inline-flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
+                                                            &bull; Work Hours:{' '}
+                                                            <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                                                {formatMinutesToHoursDot(currentMins)}
+                                                            </span>
+                                                            <span className="text-slate-400 font-medium">/{targetHours}h</span>
+                                                        </span>
+                                                    );
+                                                })()}
                                                 <span className="block mt-1">Touch and hold the fingerprint scanner below to clock out.</span>
                                             </>
                                         )}
@@ -569,6 +584,22 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                 <span className="ml-1 font-mono font-medium text-slate-900 dark:text-white">
                                                     {formatTime(todayRecord?.check_out_at ?? null)}
                                                 </span>
+                                                {todayRecord?.check_in_at && todayRecord?.check_out_at && (() => {
+                                                    const checkInMs = new Date(todayRecord.check_in_at).getTime();
+                                                    const checkOutMs = new Date(todayRecord.check_out_at).getTime();
+                                                    const workedMins = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+                                                    const targetHours = Number(employee.working_hours || 8);
+                                                    const isTargetMet = workedMins >= targetHours * 60;
+                                                    return (
+                                                        <span className="ml-1.5 inline-flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300">
+                                                            &bull; Work Hours:{' '}
+                                                            <span className={`font-mono font-bold ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                {formatMinutesToHoursDot(workedMins)}
+                                                            </span>
+                                                            <span className="text-slate-400 font-medium">/{targetHours}h</span>
+                                                        </span>
+                                                    );
+                                                })()}
                                             </>
                                         )}
                                     </p>
@@ -692,13 +723,16 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                             <th className="py-3">
                                                 <div className="min-w-30 text-center">Overtime</div>
                                             </th>
+                                            <th className="py-3">
+                                                <div className="min-w-30 text-center">Work Hours</div>
+                                            </th>
                                             <th className="py-3 pr-4 text-right">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                                         {history.length === 0 ? (
                                             <tr>
-                                                <td colSpan={7} className="py-10 text-center text-slate-500 dark:text-slate-400">
+                                                <td colSpan={8} className="py-10 text-center text-slate-500 dark:text-slate-400">
                                                     No prior records found for this month.
                                                 </td>
                                             </tr>
@@ -754,6 +788,44 @@ export default function EmployeeAttendancePortal({ brandname, logo, clientIp, ti
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-slate-400 dark:text-slate-500">—</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3">
+                                                        <div className="min-w-30 text-center">
+                                                            {rec.check_in_at && rec.check_out_at ? (
+                                                                (() => {
+                                                                    const checkInMs = new Date(rec.check_in_at).getTime();
+                                                                    const checkOutMs = new Date(rec.check_out_at).getTime();
+                                                                    const workedMins = Math.max(0, Math.round((checkOutMs - checkInMs) / 60000));
+                                                                    const targetHours = Number(employee?.working_hours || 8);
+                                                                    const isTargetMet = workedMins >= targetHours * 60;
+                                                                    return (
+                                                                        <div>
+                                                                            <span className={`font-mono font-bold text-xs ${isTargetMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                                {formatMinutesToHoursDot(workedMins)}
+                                                                            </span>
+                                                                            <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()
+                                                            ) : rec.check_in_at ? (
+                                                                (() => {
+                                                                    const checkInMs = new Date(rec.check_in_at).getTime();
+                                                                    const nowMs = currentTime.getTime();
+                                                                    const currentMins = Math.max(0, Math.round((nowMs - checkInMs) / 60000));
+                                                                    const targetHours = Number(employee?.working_hours || 8);
+                                                                    return (
+                                                                        <div title="Currently in progress">
+                                                                            <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                                                                {formatMinutesToHoursDot(currentMins)}
+                                                                            </span>
+                                                                            <span className="text-slate-400 text-xs font-medium">/{targetHours}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()
+                                                            ) : (
+                                                                <span className="text-slate-400">—</span>
                                                             )}
                                                         </div>
                                                     </td>
